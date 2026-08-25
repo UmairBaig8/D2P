@@ -26,6 +26,7 @@ import SessionsTab from '@/admin/SessionsTab';
 import ActivityTab from '@/admin/ActivityTab';
 import PlayersTab from '@/admin/PlayersTab';
 import WorkflowTab from '@/admin/WorkflowTab';
+import { EmailTestCard } from '@/admin/EmailTestCard';
 import {
   fetchAdminTeams,
   fetchAdminPlayers,
@@ -503,6 +504,9 @@ function SettingsTab() {
           </Button>
         </form>
       </Form>
+      <div className="mt-8">
+        <EmailTestCard />
+      </div>
     </div>
   );
 }
@@ -772,7 +776,7 @@ function TeamsTab() {
               return members.map((player) => (
                 <div key={player.id} className="flex items-center gap-3 rounded-lg border px-3 py-2">
                   {player.photo_url
-                    ? <img src={player.photo_url} alt="" className="size-8 rounded-full object-cover" />
+                    ? <img src={player.photo_url} alt="" className="size-8 rounded-full object-cover" loading="lazy" decoding="async" />
                     : <div className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 text-[10px] font-bold text-primary">{player.name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || '?'}</div>}
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold">{player.name}</div>

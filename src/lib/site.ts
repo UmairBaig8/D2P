@@ -243,6 +243,16 @@ export async function signOutAdmin(): Promise<void> {
   await supabase.auth.signOut();
 }
 
+export async function sendTestEmail(to: string): Promise<{ ok: boolean; provider?: string; error?: string }> {
+  if (!supabase) return { ok: false, error: 'Supabase is not configured.' };
+  const { data, error } = await supabase.functions.invoke('send-test-email', {
+    method: 'POST',
+    body: { to },
+  });
+  if (error) return { ok: false, error: error.message };
+  return (data ?? { ok: false, error: 'Empty response from function.' }) as { ok: boolean; provider?: string; error?: string };
+}
+
 export async function adminSaveSettings(patch: {
   registration_open?: string | null;
   registration_deadline?: string | null;
