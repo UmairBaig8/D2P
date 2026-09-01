@@ -1,4 +1,4 @@
-import { LogOut, ExternalLink } from 'lucide-react';
+import { LogOut, ExternalLink, Gavel } from 'lucide-react';
 import { withBase } from '@/lib/base';
 import { Button } from '@/components/ui/button';
 
@@ -13,6 +13,9 @@ export default function AdminTopbar({ dark, onToggleTheme, onLogout, showLogout 
           </span>
         </a>
         <div className="flex items-center gap-2">
+          <a href={withBase('/admin/auction')}>
+            <Button variant="outline" size="sm"><Gavel /> AUCTION</Button>
+          </a>
           <a href={withBase('/')}>
             <Button variant="ghost" size="sm"><ExternalLink /> VIEW SITE</Button>
           </a>

@@ -346,3 +346,241 @@ export async function adminUpdatePlayer(playerId: string, patch: {
   if (error) return { error: error.message };
   return {};
 }
+
+// ---------- Auction ----------
+
+export type AuctionSessionInfo = {
+  id: string;
+  name: string;
+  status: 'draft' | 'live' | 'ended';
+  purse_budget: number;
+  increment: number;
+  lot_timer_seconds: number;
+  started_at: string | null;
+  ended_at: string | null;
+  created_at: string;
+};
+
+export type AuctionBoardPlayer = {
+  player_id: string;
+  name: string;
+  employee_id: string | null;
+  photo_url: string | null;
+  player_type: string;
+  gender: string;
+  location: string;
+  dpl_played: boolean;
+  self_rating: number;
+  availability: string;
+  batting_style: string | null;
+  bowling_style: string | null;
+  lot_order: number;
+  base_price: number;
+  timer_ends_at: string | null;
+};
+
+export type AuctionCurrentBid = {
+  team_id: string;
+  team_name: string;
+  team_code: string;
+  team_icon_url: string;
+  amount: number;
+  created_at: string;
+};
+
+export type AuctionBid = { team_code: string; amount: number; created_at: string };
+
+export type AuctionTeamState = {
+  team_id: string;
+  name: string;
+  code: string;
+  icon_url: string;
+  theme: string;
+  budget: number;
+  spent: number;
+  squad: number;
+  sold: number;
+};
+
+export type AuctionResultRow = {
+  player_name: string;
+  photo_url: string | null;
+  player_type: string;
+  team_code: string | null;
+  sold_price: number | null;
+  status: string;
+  lot_order: number;
+};
+
+export type AuctionLiveState = {
+  session: AuctionSessionInfo | null;
+  current_player: AuctionBoardPlayer | null;
+  current_bid: AuctionCurrentBid | null;
+  bid_count: number;
+  bids: AuctionBid[];
+  teams: AuctionTeamState[];
+  pool_count: number;
+  results: AuctionResultRow[];
+  up_next: AuctionUpNext[];
+  recent_bids: AuctionRecentBid[];
+};
+
+export type AuctionUpNext = {
+  player_id: string;
+  name: string;
+  photo_url: string | null;
+  player_type: string;
+  lot_order: number;
+};
+
+export type AuctionRecentBid = {
+  team_code: string;
+  amount: number;
+  player_name: string;
+  created_at: string;
+};
+
+export type AdminAuctionPlayer = {
+  player_id: string;
+  name: string;
+  photo_url: string | null;
+  employee_id: string | null;
+  player_type: string;
+  gender: string;
+  location: string;
+  dpl_played: boolean;
+  self_rating: number;
+  availability: string;
+  lot_order: number;
+  base_price: number;
+  status: string;
+  sold_to_team_id: string | null;
+  sold_price: number | null;
+  opens_at: string | null;
+};
+
+export type AdminAuctionBid = { team_code: string; amount: number; player_name: string; created_at: string };
+
+export type AdminAuctionState = {
+  session: AuctionSessionInfo | null;
+  current_player: AuctionBoardPlayer | null;
+  current_bid: AuctionCurrentBid | null;
+  players: AdminAuctionPlayer[];
+  teams: AuctionTeamState[];
+  bids: AdminAuctionBid[];
+  results: AuctionResultRow[];
+};
+
+export async function fetchAuctionLiveState(): Promise<AuctionLiveState | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc('auction_live_state');
+  return error ? null : (data as AuctionLiveState);
+}
+
+export async function fetchAuctionSessionResults(sessionId: string): Promise<AuctionResultRow[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc('auction_session_results', { session_id: sessionId });
+  return error ? [] : (data as AuctionResultRow[]);
+}
+
+export async function fetchAdminAuctionState(): Promise<AdminAuctionState | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc('admin_auction_state');
+  return error ? null : (data as AdminAuctionState);
+}
+
+export async function adminAuctionStartSession(name: string, purse: number, increment: number, timer: number): Promise<{ error?: string; sessionId?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { data, error } = await supabase.rpc('admin_auction_start_session', { p_name: name, p_purse: purse, p_increment: increment, p_timer: timer });
+  if (error) return { error: error.message };
+  void logAudit('auction.start', data as string, { name, purse, increment, timer });
+  return { sessionId: data as string };
+}
+
+export async function adminAuctionUpdateSession(sessionId: string, patch: { name?: string; purse?: number; increment?: number; timer?: number; status?: string }): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('admin_auction_update_session', {
+    v_session: sessionId,
+    p_name: patch.name ?? null,
+    p_purse: patch.purse ?? null,
+    p_increment: patch.increment ?? null,
+    p_timer: patch.timer ?? null,
+    p_status: patch.status ?? null,
+  });
+  if (error) return { error: error.message };
+  void logAudit('auction.update', sessionId, patch);
+  return {};
+}
+
+export async function adminAuctionEndSession(sessionId: string): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('admin_auction_end_session', { v_session: sessionId });
+  if (error) return { error: error.message };
+  void logAudit('auction.end', sessionId, {});
+  return {};
+}
+
+export async function adminAuctionResetSession(sessionId: string): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('admin_auction_reset_session', { v_session: sessionId });
+  if (error) return { error: error.message };
+  void logAudit('auction.reset', sessionId, {});
+  return {};
+}
+
+export async function adminAuctionSetBase(playerId: string, basePrice: number): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('admin_auction_set_base', { v_player: playerId, p_base: basePrice });
+  return error ? { error: error.message } : {};
+}
+
+export async function adminAuctionOpen(playerId: string): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('admin_auction_open', { v_player: playerId });
+  if (error) return { error: error.message };
+  void logAudit('auction.open', playerId, {});
+  return {};
+}
+
+export async function adminAuctionBid(teamId: string, amount: number): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('admin_auction_bid', { v_team: teamId, p_amount: amount });
+  if (error) return { error: error.message };
+  void logAudit('auction.bid', teamId, { amount });
+  return {};
+}
+
+export async function adminAuctionSell(playerId: string, teamId: string, price: number): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('admin_auction_sell', { v_player: playerId, v_team: teamId, p_price: price });
+  if (error) return { error: error.message };
+  void logAudit('auction.sell', playerId, { team_id: teamId, price });
+  return {};
+}
+
+export async function adminAuctionUnsold(playerId: string): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('admin_auction_unsold', { v_player: playerId });
+  if (error) return { error: error.message };
+  void logAudit('auction.unsold', playerId, {});
+  return {};
+}
+
+export async function adminAuctionExtend(playerId: string, seconds: number): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('admin_auction_extend', { v_player: playerId, p_seconds: seconds });
+  if (error) return { error: error.message };
+  void logAudit('auction.extend', playerId, { seconds });
+  return {};
+}
+
+export async function adminAuctionUndo(playerId: string): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured.' };
+  const { error } = await supabase.rpc('admin_auction_undo', { v_player: playerId });
+  if (error) return { error: error.message };
+  void logAudit('auction.undo', playerId, {});
+  return {};
+}
+
+export const formatRupees = (amount: number | null | undefined): string =>
+  amount == null ? '—' : `₹${amount.toLocaleString('en-IN')}`;

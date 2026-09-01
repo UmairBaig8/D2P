@@ -475,3 +475,285 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 @media(max-height:560px) and (min-width:561px){.stat-tape{margin-top:12px;padding:6px 0}.tape-item b{font-size:20px}.tape-item{padding:0 18px}}
 @media(max-width:560px){.stat-tape{margin-top:22px}.tape-item b{font-size:22px}.tape-item{padding:0 16px}}
 @media(prefers-reduced-motion:reduce){.stat-tape-rail{animation:none}}
+
+/* ===== Live Auction Board ===== */
+.auction-live-head{max-width:1240px;margin:0 auto 22px}
+.auction-live-head h1{font:900 italic clamp(40px,5vw,64px)/.85 'Barlow Condensed';letter-spacing:-2px;margin:8px 0 16px}
+.auction-live-head h1 span{background:linear-gradient(90deg,var(--orange),var(--pink),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.auction-live-meta{display:flex;flex-wrap:wrap;gap:10px}
+
+.auction-stage{display:grid;grid-template-columns:minmax(300px,360px) 1fr;gap:22px;max-width:1240px;margin:0 auto 40px}
+.auction-stage-card{position:relative;min-height:520px;border-radius:18px;background:linear-gradient(170deg,#1b2a45 0%,#0f1b33 45%,#0a1424 100%);border:1px solid #2b3b4e;overflow:hidden;box-shadow:0 30px 60px -20px rgba(15,25,40,.6)}
+.auction-stage-card:before{content:'';position:absolute;inset:6px;border:1px solid rgba(255,255,255,.14);border-radius:13px;pointer-events:none;z-index:3}
+.auction-board-player{position:absolute;inset:0;display:flex;flex-direction:column;padding-top:14px}
+.auction-board-player .auction-card-top{padding:0 18px 10px;position:relative}
+.auction-board-player .ac-photo{height:200px}
+.auction-board-player .ac-name{font-size:28px}
+.auction-board-player .ac-body{padding:12px 18px 8px;position:relative}
+.auction-stage-idle{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:12px;text-align:center;padding:20px;z-index:4}
+.auction-stage-idle h2{font:900 italic 30px/.9 'Barlow Condensed';letter-spacing:-.5px;color:#e7eef4;margin:0}
+.auction-stage-idle p{color:#91a2b0;font-size:12px;max-width:260px;margin:0}
+
+.auction-bid-panel{display:flex;flex-direction:column;gap:14px}
+.auction-bid-panel-head{display:flex;align-items:center;justify-content:space-between;font:900 10px Inter;letter-spacing:1.5px;color:#0f9bb0}
+.auction-bid-panel-head b{color:#64788c}
+.auction-live-bid{border-radius:16px;padding:22px 24px;background:linear-gradient(160deg,#ff7a2f,#ff4b6e 55%,#d6306b);box-shadow:0 18px 40px rgba(255,75,110,.3),inset 0 1px 0 rgba(255,255,255,.35);display:grid;gap:10px;position:relative;overflow:hidden}
+.auction-live-bid:before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent)}
+.auction-live-amount{font:900 italic clamp(38px,4vw,58px)/.85 'Barlow Condensed';color:#fff;letter-spacing:.5px;text-shadow:0 2px 8px rgba(120,0,40,.4)}
+.auction-live-team{display:inline-flex;align-items:center;gap:10px;font:900 italic 20px/1 'Barlow Condensed';color:#ffe9b0;letter-spacing:1px;justify-self:start}
+.auction-live-team img{width:34px;height:34px;border-radius:8px;object-fit:cover}
+.auction-live-team.muted{color:rgba(255,255,255,.85);font:900 12px Inter;letter-spacing:1.5px}
+.auction-live-sub{display:flex;gap:10px;justify-content:space-between;font:900 10px Inter;letter-spacing:1.4px;color:#64788c}
+.auction-feed{border-radius:14px;border:1px solid #2b3b4e;background:rgba(14,23,36,.7);overflow:hidden}
+.auction-feed-title{font:900 10px Inter;letter-spacing:1.5px;color:#8fa2b4;padding:12px 16px;border-bottom:1px solid #2b3b4e}
+.auction-feed ul{list-style:none;margin:0;padding:4px 0;max-height:220px;overflow-y:auto}
+.auction-feed li{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:12px;border-bottom:1px dashed rgba(47,59,78,.6)}
+.auction-feed li:last-child{border-bottom:0}
+.auction-feed-team{font:900 italic 16px 'Barlow Condensed';color:#ffd75e;min-width:44px}
+.auction-feed b{margin-left:auto;font-size:13px;color:#e7eef4}
+.auction-feed time{font-size:10px;color:#64788c}
+.auction-feed-empty{padding:16px;text-align:center;color:#64788c;font-size:11px;margin:0}
+
+.auction-purse,.auction-results{max-width:1240px;margin:0 auto 40px}
+.auction-section-title{font:900 italic 26px/1 'Barlow Condensed';letter-spacing:1px;color:#0d1b2e;margin-bottom:16px}
+.auction-section-title span{background:linear-gradient(90deg,var(--orange),var(--pink),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.dark .auction-section-title{color:#e7eef4}
+.purse-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.purse-card{position:relative;border-radius:14px;background:rgba(255,255,255,.75);border:1px solid var(--line);padding:14px;display:grid;gap:10px;box-shadow:0 10px 24px rgba(20,45,70,.06);backdrop-filter:blur(8px)}
+.dark .purse-card{background:rgba(11,20,32,.6);border-color:#263747}
+.purse-card-head{display:flex;align-items:center;gap:10px}
+.purse-card-head img{width:40px;height:40px;border-radius:10px;object-fit:cover}
+.purse-card-fallback{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#09c9d8,#873cff);color:#fff;font:900 italic 14px 'Barlow Condensed'}
+.purse-card-head div{display:grid;gap:1px}
+.purse-card-head b{font:900 italic 20px/1 'Barlow Condensed';color:#0d1b2e;letter-spacing:.5px}
+.purse-card-head span{font-size:8px;font-weight:900;letter-spacing:1px;color:#64788c}
+.dark .purse-card-head b{color:#eef5fb}
+.purse-card-amount{display:flex;align-items:baseline;gap:6px}
+.purse-card-remaining{font:900 italic 24px/1 'Barlow Condensed';color:#0f9bb0}
+.purse-card-amount small{font-size:8px;font-weight:900;letter-spacing:1.2px;color:#64788c}
+.purse-card-bar{height:6px;border-radius:99px;background:#dbe6ee;overflow:hidden}
+.dark .purse-card-bar{background:#16233a}
+.purse-card-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#16c79a,#ffb03a,#ff4b6e)}
+.purse-card-spent{display:flex;justify-content:space-between;font-size:8px;font-weight:900;letter-spacing:1px;color:#64788c}
+.purse-card-spent b{color:#334556}
+.dark .purse-card-spent b{color:#b4c3ce}
+
+.results-strip{display:flex;flex-wrap:wrap;gap:10px}
+.results-chip{display:inline-flex;align-items:center;gap:8px;border-radius:99px;padding:8px 14px;font-size:11px;border:1px solid var(--line);background:rgba(255,255,255,.7)}
+.dark .results-chip{background:rgba(11,20,32,.6);border-color:#263747}
+.results-chip b{font:900 italic 16px 'Barlow Condensed';letter-spacing:.5px}
+.results-chip.sold b{color:#16c79a}
+.results-chip.unsold b{color:#ff4b6e}
+.results-chip span{color:#334556;font-weight:600}
+.dark .results-chip span{color:#b4c3ce}
+.results-chip em{font-style:normal;font-weight:900;font-size:10px;color:#0f9bb0;letter-spacing:.5px}
+.results-chip.unsold em{color:#ff8a5c}
+
+@media(max-width:980px){.auction-stage{grid-template-columns:1fr}.auction-stage-card{min-height:480px}}
+@media(max-width:560px){.auction-live-head h1{font-size:44px}.auction-stage-card{min-height:430px}.auction-board-player .ac-photo{height:150px}}
+
+.auction-results-foot{margin-top:14px;font-size:11px;font-weight:900;letter-spacing:1px;color:#64788c}
+
+/* ===== Live Auction Board (single viewport) ===== */
+.auction-page.auction-live{height:100vh;overflow:hidden}
+.auction-page.auction-live .auction-main{padding:16px clamp(16px,2.5vw,36px) 18px}
+.auction-live-main{width:100%;max-width:none;margin:0}
+.auction-board-shell{height:100%;min-height:0;display:flex;flex-direction:column;gap:12px;max-width:none;margin:0 auto;width:100%}
+
+.auction-board-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.auction-board-title{display:flex;align-items:center;gap:12px;min-width:0}
+.auction-board-title h1{font:900 italic clamp(22px,2.6vw,34px)/1 'Barlow Condensed';letter-spacing:.5px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auction-board-counts{display:flex;gap:6px;margin-left:auto}
+.auction-board-counts span{padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.7);border:1px solid var(--line);font:900 10px Inter;letter-spacing:1.2px;color:#0f9bb0;white-space:nowrap}
+.dark .auction-board-counts span{background:rgba(11,20,32,.6);border-color:#263747}
+.auction-board-timer{display:flex;align-items:center;gap:10px}
+
+.auction-timer{display:inline-flex;flex-direction:column;align-items:center;line-height:1;padding:6px 14px;border-radius:14px;background:linear-gradient(160deg,#0f9bb0,#873cff);color:#fff;box-shadow:0 8px 20px rgba(135,60,255,.25);min-width:74px}
+.auction-timer b{font:900 italic 26px/1 'Barlow Condensed';letter-spacing:1px}
+.auction-timer span{font-size:8px;font-weight:900;letter-spacing:1.6px;color:rgba(255,255,255,.85);margin-top:2px}
+.auction-timer.lg b{font-size:34px}
+.auction-timer.danger{background:linear-gradient(160deg,#ff4b6e,#d6306b);box-shadow:0 8px 22px rgba(255,75,110,.45);animation:auct-pulse 1s ease-in-out infinite}
+.auction-timer.off{background:rgba(120,135,150,.5);box-shadow:none}
+@keyframes auct-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.auction-board-timer-label{font:900 10px Inter;letter-spacing:1.5px;color:#64788c;text-transform:uppercase;white-space:nowrap}
+
+.auction-board-stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:16px}
+
+.auction-board-left{display:flex;flex-direction:column;gap:12px;min-height:0}
+.auction-bid-strip{display:grid;grid-template-columns:1fr 1.5fr;gap:12px}
+.auction-bid-stat{border-radius:14px;padding:12px 16px;display:flex;flex-direction:column;gap:3px;justify-content:center;min-width:0}
+.auction-bid-stat span{font-size:9px;font-weight:900;letter-spacing:1.5px;color:#64788c}
+.auction-bid-stat b{font:900 italic clamp(24px,2.6vw,40px)/1 'Barlow Condensed';letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auction-bid-stat.base{border:1px solid var(--line);background:rgba(255,255,255,.62)}
+.dark .auction-bid-stat.base{background:rgba(11,20,32,.6);border-color:#263747}
+.auction-bid-stat.base b{color:#0f9bb0}
+.auction-bid-stat.live{border:1px solid rgba(255,255,255,.2);background:linear-gradient(160deg,#ff7a2f,#ff4b6e 55%,#d6306b);color:#fff;box-shadow:0 14px 30px rgba(255,75,110,.25)}
+.auction-bid-stat.live span{color:rgba(255,255,255,.8)}
+.auction-bid-stat.live b{color:#fff}
+.auction-bid-stat.live em{font-style:normal;font-size:11px;font-weight:800;letter-spacing:1px;color:#ffe9b0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auction-board-left .auction-focus{flex:1;min-height:0;height:auto}
+
+.auction-board-right{display:flex;flex-direction:column;gap:10px;min-height:0}
+.auction-teams-head{display:flex;align-items:baseline;justify-content:space-between}
+.auction-teams-head h3{font:900 italic 26px/1 'Barlow Condensed';letter-spacing:1px;margin:0}
+.auction-teams-head h3 span{background:linear-gradient(90deg,var(--orange),var(--pink),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.auction-teams-head small{font-size:9px;font-weight:900;letter-spacing:1.2px;color:#64788c}
+.auction-teams-grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:minmax(92px,1fr);gap:12px}
+.auction-team-card{display:flex;flex-direction:column;gap:7px;justify-content:space-between;border-radius:16px;padding:12px 14px;border:1px solid var(--line);background:rgba(255,255,255,.78);box-shadow:0 10px 22px rgba(20,45,70,.08);min-width:0;min-height:0;overflow:hidden}
+.dark .auction-team-card{background:rgba(11,20,32,.62);border-color:#263747}
+.atc-head{display:flex;align-items:center;gap:10px;min-width:0}
+.atc-head img{width:36px;height:36px;border-radius:9px;object-fit:cover}
+.auction-team-card .atc-fallback{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#09c9d8,#873cff);color:#fff;font:900 italic 12px 'Barlow Condensed'}
+.atc-id{min-width:0;flex:1}
+.atc-id b{display:block;font:900 italic 20px/1 'Barlow Condensed';color:#0d1b2e;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dark .atc-id b{color:#eef5fb}
+.atc-id span{display:block;font-size:10px;font-weight:700;color:#64788c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.atc-squad{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#334556;background:rgba(127,127,127,.12);border-radius:99px;padding:3px 8px;white-space:nowrap;flex-shrink:0}
+.atc-squad:before{content:'\1F465';font-size:10px;line-height:1}
+.dark .atc-squad{color:#c7d4df;background:rgba(255,255,255,.08)}
+.atc-money{display:flex;align-items:baseline;gap:6px}
+.atc-money b{font:900 italic clamp(20px,1.8vw,30px)/1 'Barlow Condensed';color:#0f9bb0;letter-spacing:.4px;white-space:nowrap}
+.atc-money span{font-size:9px;font-weight:900;letter-spacing:1.2px;color:#64788c}
+.atc-bar{height:6px;border-radius:99px;background:#dbe6ee;overflow:hidden}
+.dark .atc-bar{background:#16233a}
+.atc-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#16c79a,#ffb03a,#ff4b6e)}
+.atc-foot{display:flex;justify-content:space-between;font-size:9px;font-weight:900;letter-spacing:.8px;color:#64788c}
+.atc-foot span:last-child{color:#334556}
+.dark .atc-foot span:last-child{color:#b4c3ce}
+.auction-team-card.leading{border-color:#16c79a;box-shadow:0 0 0 1px #16c79a,0 12px 26px rgba(22,199,154,.22)}
+.auction-team-card.leading .atc-id b{color:#16c79a}
+.auction-team-card.empty .atc-money b{color:#ff4b6e}
+.auction-team-card.blocked{opacity:.5}
+
+.auction-focus-stats{display:flex;align-items:center;gap:16px;margin-top:10px;flex-wrap:wrap}
+.auction-focus-stats .ac-rating svg{color:rgba(255,255,255,.35)}
+.auction-focus-stats .ac-rating svg.on{color:#ffc22e}
+.auction-focus-stats .ac-rating-num{color:#cfe0ee}
+.auction-focus-stats .ac-avail{min-width:150px;flex:1}
+.auction-focus-stats .ac-avail-head span{color:rgba(255,255,255,.55)}
+.auction-focus-stats .ac-avail-head b{color:#8fe3b0}
+.auction-focus-stats .ac-avail-bar{background:rgba(255,255,255,.22)}
+.auction-focus{position:relative;height:100%;min-height:0;border-radius:18px;overflow:hidden;background:#0b1420;border:1px solid rgba(20,45,70,.14);box-shadow:0 24px 50px rgba(15,25,40,.28)}
+.dark .auction-focus{border-color:rgba(148,163,184,.14)}
+.auction-focus .player-card-bg{object-position:50% 15%}
+.auction-focus-top{position:absolute;top:12px;left:16px;right:16px;z-index:2;display:flex;align-items:center;justify-content:space-between;color:#fff;text-shadow:0 1px 8px rgba(3,9,20,.6)}
+.auction-focus-no{font-size:10px;font-weight:900;letter-spacing:1.5px;color:#fff;background:rgba(3,9,20,.55);border:1px solid rgba(255,255,255,.25);border-radius:99px;padding:4px 10px}
+.auction-focus-bottom{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:14px 16px 16px;color:#fff;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.auction-focus-id{min-width:0}
+.auction-focus-name{font:900 italic clamp(30px,3.4vw,52px)/.9 'Barlow Condensed';letter-spacing:.3px;text-transform:uppercase;text-shadow:0 2px 12px rgba(3,9,20,.8)}
+.auction-focus-meta{font-size:11px;font-weight:800;letter-spacing:1.4px;color:#cfe0ee;text-shadow:0 1px 6px rgba(3,9,20,.8);margin-top:6px;text-transform:uppercase}
+.auction-focus-chips{display:flex;gap:7px;margin-top:8px}
+.auction-focus-badge{flex-shrink:0;text-align:center;padding:8px 14px;border-radius:14px;background:rgba(3,9,20,.6);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(6px)}
+.auction-focus-badge b{display:block;font:900 italic 22px/1 'Barlow Condensed';color:#ffd75e;letter-spacing:.5px}
+.auction-focus-badge span{font-size:8px;font-weight:900;letter-spacing:1.4px;color:rgba(255,255,255,.8)}
+.auction-focus-idle{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:10px;text-align:center;padding:20px;z-index:4;background:linear-gradient(170deg,#1b2a45 0%,#0a1424 100%)}
+.auction-focus-idle h2{font:900 italic 34px/.9 'Barlow Condensed';letter-spacing:-.5px;color:#e7eef4;margin:0}
+.auction-focus-idle p{color:#91a2b0;font-size:12px;max-width:280px;margin:0}
+
+.auction-board-side{display:flex;flex-direction:column;gap:12px;min-height:0}
+.auction-base-price{display:inline-flex;align-items:baseline;gap:8px;align-self:flex-start;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.62)}
+.dark .auction-base-price{background:rgba(11,20,32,.6);border-color:#263747}
+.auction-base-price span{font-size:9px;font-weight:900;letter-spacing:1.4px;color:#64788c}
+.auction-base-price b{font:900 italic 22px/1 'Barlow Condensed';color:#0f9bb0;letter-spacing:.5px}
+.auction-feed.grow{flex:1;min-height:0;display:flex;flex-direction:column}
+.auction-feed.grow ul{flex:1;min-height:0}
+.auction-live-sub .auction-timer{min-width:62px;padding:4px 10px;border-radius:10px}
+.auction-live-sub .auction-timer b{font-size:20px}
+
+.auction-board-bottom{display:flex;flex-direction:column;gap:8px;min-height:0}
+.purse-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.purse-chip{display:flex;align-items:center;gap:9px;border-radius:14px;padding:9px 15px;background:rgba(255,255,255,.75);border:1px solid var(--line);white-space:nowrap;box-shadow:0 8px 18px rgba(20,45,70,.07)}
+.dark .purse-chip{background:rgba(11,20,32,.62);border-color:#263747}
+.purse-chip img{width:30px;height:30px;border-radius:7px;object-fit:cover}
+.purse-chip-fallback{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(135deg,#09c9d8,#873cff);color:#fff;font:900 italic 11px 'Barlow Condensed'}
+.purse-chip b{font:900 italic 18px/1 'Barlow Condensed';color:#0d1b2e;letter-spacing:.4px}
+.dark .purse-chip b{color:#eef5fb}
+.purse-chip .purse-chip-rem{font-size:12px;font-weight:900;color:#0f9bb0;letter-spacing:.3px;font-variant-numeric:tabular-nums}
+.purse-chip small{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#334556;background:rgba(127,127,127,.12);border-radius:99px;padding:3px 8px;margin-left:2px}
+.purse-chip small:before{content:'\1F465';font-size:10px;line-height:1}
+.dark .purse-chip small{color:#c7d4df;background:rgba(255,255,255,.08)}
+.purse-chip.empty .purse-chip-rem{color:#ff4b6e}
+.auction-board-ticker{display:flex;gap:6px;overflow:hidden;align-items:center}
+.ticker-chip{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:4px 10px;font-size:10px;border:1px solid var(--line);background:rgba(255,255,255,.6);white-space:nowrap;color:#334556}
+.dark .ticker-chip{background:rgba(11,20,32,.6);border-color:#263747;color:#b4c3ce}
+.ticker-chip b{font:900 italic 14px 'Barlow Condensed'}
+.ticker-chip.sold b{color:#16c79a}
+.ticker-chip.unsold b{color:#ff4b6e}
+.ticker-chip em{font-style:normal;font-weight:700}
+.ticker-chip i{font-style:normal;font-weight:900;color:#0f9bb0}
+
+@media(max-width:980px){.auction-board-stage{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;overflow:hidden}.auction-board-right{min-height:0}.auction-teams-grid{overflow-y:auto}.auction-focus-idle{min-height:280px}}
+@media(max-width:560px){.auction-board-top{gap:8px}.auction-board-title h1{font-size:20px}.auction-board-counts span{padding:4px 8px;font-size:8px}.auction-timer.lg b{font-size:26px}.auction-bid-strip{grid-template-columns:1fr 1fr}.auction-bid-stat b{font-size:22px}.auction-team-card{padding:8px 10px}.auction-team-info b{font-size:16px}}
+
+/* ===== Admin Live Board: tap-a-team-to-bid ===== */
+.lb-team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.lb-team{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(127,127,127,.07);cursor:pointer;font:inherit;transition:transform .12s ease,border-color .12s ease,background .12s ease;min-width:0}
+.lb-team b{font:900 italic 16px/1 'Barlow Condensed';letter-spacing:.4px;color:inherit;white-space:nowrap}
+.lb-team span{font-size:10px;font-weight:900;color:#0f9bb0;white-space:nowrap}
+.lb-team:hover{border-color:#873cff;transform:translateY(-1px)}
+.lb-team:active{transform:scale(.97)}
+.lb-team.lead{border-color:#16c79a;background:rgba(22,199,154,.14)}
+.lb-team.lead b{color:#16c79a}
+.lb-team:disabled{opacity:.42;cursor:not-allowed;transform:none}
+.dark .lb-team{background:rgba(255,255,255,.05);border-color:#263747}
+.dark .lb-team.lead{background:rgba(22,199,154,.16)}
+
+/* ===== Public board bottom: UP NEXT + live ticker ===== */
+.auction-upnext{display:flex;align-items:center;gap:12px;min-width:0}
+.auction-upnext-label{font:900 italic 22px/1 'Barlow Condensed';letter-spacing:1px;color:#0d1b2e;white-space:nowrap}
+.dark .auction-upnext-label{color:#e7eef4}
+.auction-upnext-label span{background:linear-gradient(90deg,var(--orange),var(--pink),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.auction-upnext-list{display:flex;gap:10px;min-width:0;overflow:hidden}
+.auction-upnext-card{display:flex;align-items:center;gap:8px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.72);padding:6px 12px 6px 6px;white-space:nowrap;box-shadow:0 6px 16px rgba(20,45,70,.05)}
+.dark .auction-upnext-card{background:rgba(11,20,32,.6);border-color:#263747}
+.auction-upnext-card img{width:34px;height:34px;border-radius:9px;object-fit:cover}
+.aun-fallback{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#09c9d8,#873cff);color:#fff;font:900 italic 11px 'Barlow Condensed'}
+.auction-upnext-info b{display:block;font:900 italic 16px/1 'Barlow Condensed';color:#0d1b2e;letter-spacing:.3px;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.dark .auction-upnext-info b{color:#eef5fb}
+.auction-upnext-info span{font-size:9px;font-weight:800;letter-spacing:.6px;color:#64788c}
+
+.auction-ticker{display:flex;align-items:stretch;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.72);overflow:hidden;height:40px}
+.dark .auction-ticker{background:rgba(11,20,32,.62);border-color:#263747}
+.auction-ticker-label{padding:0 14px;font:900 10px Inter;letter-spacing:1.5px;color:#0f9bb0;display:grid;place-items:center;background:rgba(9,201,216,.1);border-right:1px solid var(--line);white-space:nowrap}
+.auction-ticker-track{flex:1;min-width:0;overflow:hidden;display:flex;align-items:center;mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+.auction-ticker-run{display:flex;align-items:center;gap:30px;white-space:nowrap;will-change:transform;animation:auction-marquee 30s linear infinite;padding-left:30px}
+.auction-ticker:hover .auction-ticker-run{animation-play-state:paused}
+@keyframes auction-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.auction-ticker-item{font-size:12px;font-weight:800;color:#334556;letter-spacing:.4px}
+.dark .auction-ticker-item{color:#b4c3ce}
+.auction-ticker-item.bid{color:#0f9bb0}
+.auction-ticker-item.sold{color:#16c79a}
+.auction-ticker-item.unsold{color:#ff4b6e}
+
+@media(max-width:560px){.auction-upnext-label{font-size:16px}.auction-upnext-card{padding:5px 10px 5px 5px}.auction-upnext-card img{width:28px;height:28px}}
+
+/* ===== Public board: solid readable backgrounds (no photo bg) ===== */
+.auction-page{background:linear-gradient(180deg,#f4f7fa 0%,#e7edf3 100%);background-color:#eef3f6}
+.auction-page:before{display:none}
+.dark.auction-page{background:linear-gradient(180deg,#0b1420 0%,#060b14 100%);background-color:#050b14}
+.dark.auction-page:before{display:none}
+.auction-bid-strip{grid-template-columns:1fr}
+.auction-bid-stat.live b.auction-bid-pop{display:inline-block}
+.auction-bid-pop{animation:auction-bidpop .4s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes auction-bidpop{from{transform:scale(1.28)}to{transform:scale(1)}}
+
+/* ===== Full-screen SOLD / UNSOLD verdict flash ===== */
+.auction-flash{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(3,9,20,.74);backdrop-filter:blur(6px);animation:auction-flash-bg .18s ease}
+.auction-flash-card{text-align:center;padding:36px 64px;border-radius:26px;background:linear-gradient(160deg,#0e1a2c,#111c2e);border:1px solid rgba(255,255,255,.16);box-shadow:0 40px 90px rgba(0,0,0,.55);animation:auction-flash-pop .34s cubic-bezier(.2,.9,.3,1.25)}
+.auction-flash-verdict{font:900 italic 72px/1 'Barlow Condensed';letter-spacing:2px;text-transform:uppercase}
+.auction-flash.sold .auction-flash-verdict{background:linear-gradient(90deg,#16c79a,#8fe3b0);-webkit-background-clip:text;background-clip:text;color:transparent}
+.auction-flash.unsold .auction-flash-verdict{background:linear-gradient(90deg,#ff4b6e,#ff8a5c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.auction-flash-team{font:900 italic 32px/1 'Barlow Condensed';color:#ffd75e;letter-spacing:1px;margin-top:8px}
+.auction-flash-player{font:900 italic 44px/1 'Barlow Condensed';color:#eef5fb;margin-top:16px;text-transform:uppercase;letter-spacing:.5px}
+.auction-flash-price{font:900 italic 34px/1 'Barlow Condensed';color:#24c4d6;margin-top:6px;letter-spacing:.5px}
+.auction-flash.unsold .auction-flash-price{color:#ff8a5c}
+@keyframes auction-flash-pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes auction-flash-bg{from{opacity:0}to{opacity:1}}
+
+.auction-confetti{position:fixed;inset:0;z-index:1001;pointer-events:none}
+
+.auction-callout{position:fixed;top:20vh;left:50%;transform:translateX(-50%);z-index:1000;text-align:center;pointer-events:none;animation:auction-callout-in .25s cubic-bezier(.2,.9,.3,1.3)}
+.auction-callout b{display:inline-block;font:900 italic clamp(44px,6vw,88px)/1 'Barlow Condensed';letter-spacing:3px;text-transform:uppercase;padding:10px 34px;border-radius:18px;background:linear-gradient(90deg,#ffd75e,#ff8a3c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 10px 30px rgba(0,0,0,.4));animation:auction-callout-pulse .9s ease-in-out infinite}
+.auction-callout.twice b{background:linear-gradient(90deg,#ff6e40,#ff4b6e);-webkit-background-clip:text;background-clip:text}
+@keyframes auction-callout-in{from{transform:translateX(-50%) scale(.5);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+@keyframes auction-callout-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}

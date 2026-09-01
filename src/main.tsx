@@ -11,6 +11,7 @@ import TeamsPage from '@/pages/TeamsPage';
 import PlayersPage from '@/pages/PlayersPage';
 import TeamPage from '@/pages/TeamPage';
 import AdminPage from '@/admin/AdminPage';
+import AuctionControlRoom from '@/admin/AuctionControlRoom';
 import ComingSoonPage from '@/pages/ComingSoonPage';
 import './index.css';
 import './styles.css';
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/teams/:code" element={<TeamPage />} />
         <Route path="/players" element={<PlayersPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin/auction" element={<AuctionControlRoom />} />
         <Route path="/fixtures" element={<ComingSoonPage eyebrow="DPL 2026 / FIXTURES" title="FIXTURES" copy="The full match schedule with dates, venues, and results will live here." icon="📅" backgroundImage={withBase('/fixtures.png')} />} />
         <Route path="/auction" element={<AuctionPage />} />
         <Route path="/leaderboard" element={<ComingSoonPage eyebrow="DPL 2026 / LEADERBOARD" title="LEADERBOARD" copy="Player rankings, run scorers, and wicket takers will be tracked here." icon="📊" backgroundImage={withBase('/leaderboard.png')} />} />
