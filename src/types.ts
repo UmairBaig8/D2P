@@ -18,7 +18,7 @@ export type Registration = {
 
 export type PlayerType = 'Batter' | 'Bowler' | 'All-rounder' | 'Wicketkeeper-batter';
 export type Gender = 'Male' | 'Female';
-export type Location = 'CZ' | 'SP' | 'Other';
+export type Location = 'CZ' | 'SP' | 'Mumbai' | 'Other';
 export type BattingStyle = 'Right-hand batter' | 'Left-hand batter';
 export type BowlingStyle = 'Right-arm pace' | 'Left-arm pace' | 'Right-arm spin' | 'Left-arm spin' | 'Do not bowl';
 export type BowlingArm = 'Right arm' | 'Left arm' | 'Not applicable';

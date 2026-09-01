@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { fetchAdminPlayers, fetchAdminTeams, adminAssignPlayer, adminRemovePlayerFromTeam, adminUpdatePlayer, adminAddPlayer, type AdminPlayer, type AdminTeam } from '@/lib/site';
 import { uploadPlayerPhoto } from '@/lib/registrations';
 
-const LOCATIONS = ['CZ', 'SP', 'Other'];
+const LOCATIONS = ['CZ', 'SP', 'Mumbai', 'Other'];
 const PLAYER_TYPES = ['Batter', 'Bowler', 'All-rounder', 'Wicketkeeper-batter'];
 const GENDERS = ['Male', 'Female'];
 const BATTING_STYLES = ['Right-hand batter', 'Left-hand batter'];

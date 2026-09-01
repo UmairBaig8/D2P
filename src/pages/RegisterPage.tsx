@@ -303,6 +303,7 @@ export default function RegisterPage() {
                     <select id="location" required value={form.location} aria-invalid={Boolean(fieldError('location'))} onChange={(event) => setField('location', event.target.value)} onBlur={() => blurField('location')}>
                       <option value="CZ">CZ</option>
                       <option value="SP">SP</option>
+                      <option value="Mumbai">Mumbai</option>
                       <option value="Other">Other</option>
                     </select>
                   </div>

@@ -23,7 +23,7 @@ const ROLE_OPTIONS = ['Batter', 'Bowler', 'All-rounder', 'Wicketkeeper-batter'];
 const BATTING_OPTIONS = ['Right-hand batter', 'Left-hand batter'];
 const BOWLING_OPTIONS = ['Do not bowl', 'Right-arm pace', 'Left-arm pace', 'Right-arm spin', 'Left-arm spin'];
 const ARM_OPTIONS = ['Not applicable', 'Right arm', 'Left arm'];
-const LOCATION_OPTIONS = ['CZ', 'SP', 'Other'];
+const LOCATION_OPTIONS = ['CZ', 'SP', 'Mumbai', 'Other'];
 const AVAILABILITY_OPTIONS = ['Available for all matches', 'Available for most matches', 'Need schedule confirmation'];
 
 const editSchema = z.object({
