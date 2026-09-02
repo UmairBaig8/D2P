@@ -10,7 +10,7 @@ export const schema = configure({
     engine: 'postgresql',
     connectionUri: secret('SQL_CONNECTION_STRING'),
   },
-})({
+}).schema({
   registrations: a
     .model({
       id: a.string(),
