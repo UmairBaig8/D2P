@@ -13,6 +13,7 @@
     "esbuild": true
   },
   "dependencies": {
+    "@aws-amplify/backend": "^1.24.0",
     "@hookform/resolvers": "^5.9.1",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-label": "^2.1.15",
@@ -35,12 +36,16 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@aws-amplify/backend-cli": "^1.9.0",
+    "@aws-amplify/data-schema": "^1.26.1",
     "@eslint/js": "^9.33.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.2",
+    "aws-cdk-lib": "^2.267.0",
+    "constructs": "^10.8.1",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
