@@ -13,7 +13,7 @@ export const schema = configure({
 }).schema({
   registrations: a
     .model({
-      id: a.string(),
+      id: a.string().required(),
       name: a.string().required(),
       email: a.string().required(),
       squad: a.string(),
@@ -38,7 +38,7 @@ export const schema = configure({
 
   settings: a
     .model({
-      id: a.integer(),
+      id: a.integer().required(),
       registration_open: a.datetime(),
       registration_deadline: a.datetime(),
       player_capacity: a.integer().required(),
@@ -52,7 +52,7 @@ export const schema = configure({
 
   teams: a
     .model({
-      id: a.string(),
+      id: a.string().required(),
       name: a.string().required(),
       icon: a.string().required(),
       sort_order: a.integer().required(),
@@ -68,7 +68,7 @@ export const schema = configure({
 
   team_players: a
     .model({
-      id: a.string(),
+      id: a.string().required(),
       team_id: a.string().required(),
       player_id: a.string().required(),
       role: a.string().required(),
@@ -79,7 +79,7 @@ export const schema = configure({
 
   admin_users: a
     .model({
-      email: a.string(),
+      email: a.string().required(),
       created_at: a.datetime().required(),
     })
     .identifier(['email'])
@@ -87,7 +87,7 @@ export const schema = configure({
 
   admin_audit: a
     .model({
-      id: a.integer(),
+      id: a.integer().required(),
       actor_email: a.string(),
       action: a.string().required(),
       target_id: a.string(),
@@ -99,7 +99,7 @@ export const schema = configure({
 
   player_edit_requests: a
     .model({
-      id: a.string(),
+      id: a.string().required(),
       player_id: a.string().required(),
       player_name: a.string().required(),
       changes: a.json().required(),
@@ -117,7 +117,7 @@ export const schema = configure({
 
   page_views: a
     .model({
-      id: a.integer(),
+      id: a.integer().required(),
       path: a.string().required(),
       session_id: a.string().required(),
       viewed_at: a.datetime().required(),
@@ -131,7 +131,7 @@ export const schema = configure({
 
   sessions: a
     .model({
-      id: a.string(),
+      id: a.string().required(),
       started_at: a.datetime().required(),
       last_seen: a.datetime().required(),
       page_count: a.integer().required(),
@@ -156,7 +156,7 @@ export const schema = configure({
 
   ip_geo: a
     .model({
-      ip_hash: a.string(),
+      ip_hash: a.string().required(),
       country: a.string(),
       region: a.string(),
       city: a.string(),
@@ -168,7 +168,7 @@ export const schema = configure({
 
   auction_sessions: a
     .model({
-      id: a.string(),
+      id: a.string().required(),
       name: a.string().required(),
       status: a.string().required(),
       purse_budget: a.integer().required(),
@@ -184,7 +184,7 @@ export const schema = configure({
 
   auction_results: a
     .model({
-      id: a.string(),
+      id: a.string().required(),
       session_id: a.string().required(),
       player_id: a.string().required(),
       lot_order: a.integer().required(),
@@ -201,7 +201,7 @@ export const schema = configure({
 
   auction_bids: a
     .model({
-      id: a.string(),
+      id: a.string().required(),
       session_id: a.string().required(),
       player_id: a.string().required(),
       team_id: a.string().required(),
@@ -213,7 +213,7 @@ export const schema = configure({
 
   auction_purses: a
     .model({
-      id: a.string(),
+      id: a.string().required(),
       session_id: a.string().required(),
       team_id: a.string().required(),
       budget: a.integer().required(),
