@@ -6,7 +6,7 @@ import { secret } from '@aws-amplify/backend';
 
 export const schema = configure({
   database: {
-    identifier: 'IDe6bafbb2bf3e1c3a289b9871956575f6',
+    identifier: 'ID7579947023c5a5ddb9784c7211820410',
     engine: 'postgresql',
     connectionUri: secret('SQL_CONNECTION_STRING'),
   },
