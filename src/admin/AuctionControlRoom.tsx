@@ -133,6 +133,15 @@ function SessionPanel({ state, onChanged }: { state: AdminAuctionState; onChange
     else { toast.success('Session reset to draft.'); onChanged(); }
   };
 
+  const startLive = async () => {
+    if (!session) return;
+    setBusy(true);
+    const { error } = await adminAuctionUpdateSession(session.id, { status: 'live' });
+    setBusy(false);
+    if (error) toast.error(`Failed: ${error}`);
+    else { toast.success('Auction is live.'); onChanged(); }
+  };
+
   if (!session) {
     return (
       <Card>
@@ -214,7 +223,10 @@ function SessionPanel({ state, onChanged }: { state: AdminAuctionState; onChange
             </>
           )}
           {!live && (
-            <Button size="sm" variant="outline" onClick={() => setConfirmReset(true)} disabled={busy}><RotateCcw /> RESET SESSION</Button>
+            <>
+              <Button size="sm" onClick={startLive} disabled={busy}><Play /> START LIVE AUCTION</Button>
+              <Button size="sm" variant="outline" onClick={() => setConfirmReset(true)} disabled={busy}><RotateCcw /> RESET SESSION</Button>
+            </>
           )}
         </div>
       </CardContent>

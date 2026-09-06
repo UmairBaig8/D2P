@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(if:*)",
+      "Shell(else:*)",
+      "Shell(npm:*)",
+      "Shell(curl -s -o nul -w \"%{http_code}\" http://localhost:5173/D2P/)",
+      "Shell(node_modules.bintsc:*)",
+      "Shell(agent-browser:*)",
+      "Shell(curl -s -o nul -w \"%{http_code}\" http://localhost:5173/D2P/auction)",
+      "Shell(curl -s \"https://aoytfsgxzpqzakenerln.supabase.co/rest/v1/rpc/auction_live_state\" -H \"apikey: sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Authorization: Bearer sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Content-Type: application/json\" -d \"{}\")",
+      "Shell(node_modules.bineslint:*)",
+      "Shell(node_modules.binsupabase:*)",
+      "Shell(netstat:*)",
+      "Shell(findstr:*)",
+      "Shell(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Shell(curl -s \"https://aoytfsgxzpqzakenerln.supabase.co/rest/v1/registrations?select=id\" -H \"apikey: sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Authorization: Bearer sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Prefer: count=exact\" -D - -o /dev/null 2>nul | findstr /i \"content-range\")",
+      "Shell(for t in teams auction_sessions auction_results auction_purses; do echo -n \"$t: \"; curl -s \"https://aoytfsgxzpqzakenerln.supabase.co/rest/v1/$t?select=id\" -H \"apikey: sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Authorization: Bearer sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Prefer: count=exact\" -D - -o /dev/null 2>nul | findstr /i \"content-range\"; done)",
+      "Shell(curl -s \"https://aoytfsgxzpqzakenerln.supabase.co/rest/v1/teams?select=id\" -H \"apikey: sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Authorization: Bearer sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Prefer: count=exact\" -D - -o /dev/null 2>nul | findstr /i \"content-range\")",
+      "Shell(curl -s \"https://aoytfsgxzpqzakenerln.supabase.co/rest/v1/auction_sessions?select=id\" -H \"apikey: sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Authorization: Bearer sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Prefer: count=exact\" -D - -o /dev/null 2>nul | findstr /i \"content-range\")",
+      "Shell(curl -s \"https://aoytfsgxzpqzakenerln.supabase.co/rest/v1/auction_results?select=id\" -H \"apikey: sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Authorization: Bearer sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Prefer: count=exact\" -D - -o /dev/null 2>nul | findstr /i \"content-range\")",
+      "Shell(curl -s \"https://aoytfsgxzpqzakenerln.supabase.co/rest/v1/team_players?select=id\" -H \"apikey: sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Authorization: Bearer sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Prefer: count=exact\" -D - -o /dev/null 2>nul | findstr /i \"content-range\")",
+      "Shell(curl -s \"https://aoytfsgxzpqzakenerln.supabase.co/rest/v1/auction_sessions?select=id,name,status,purse_budget\" -H \"apikey: sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\" -H \"Authorization: Bearer sb_publishable_p1BSbX59mjS56k71swBQVA_9QwKLar4\")"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}
