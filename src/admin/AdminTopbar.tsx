@@ -1,8 +1,8 @@
-import { LogOut, ExternalLink } from 'lucide-react';
+import { LogOut, ExternalLink, Gavel } from 'lucide-react';
 import { withBase } from '@/lib/base';
 import { Button } from '@/components/ui/button';
 
-export default function AdminTopbar({ dark, onToggleTheme, onLogout, showLogout = true }: { dark: boolean; onToggleTheme: (dark: boolean) => void; onLogout: () => void; showLogout?: boolean }) {
+export default function AdminTopbar({ dark, onToggleTheme, onLogout, showLogout = true, auctionPage = false }: { dark: boolean; onToggleTheme: (dark: boolean) => void; onLogout: () => void; showLogout?: boolean; auctionPage?: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-card/80 backdrop-blur">
       <div className="shell flex h-14 items-center justify-between gap-4">
@@ -13,6 +13,12 @@ export default function AdminTopbar({ dark, onToggleTheme, onLogout, showLogout 
           </span>
         </a>
         <div className="flex items-center gap-2">
+          <a href={withBase('/admin/auction')}>
+            <Button variant="outline" size="sm" className={auctionPage ? 'border-primary/60 text-primary' : ''}><Gavel /> AUCTION</Button>
+          </a>
+          <a href={withBase('/admin')}>
+            <Button variant="ghost" size="sm"><span className="text-xs font-black">CONSOLE</span></Button>
+          </a>
           <a href={withBase('/')}>
             <Button variant="ghost" size="sm"><ExternalLink /> VIEW SITE</Button>
           </a>
