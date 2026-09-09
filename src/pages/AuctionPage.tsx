@@ -179,7 +179,6 @@ function CountdownFace({ seconds, copy }: { seconds: number; copy: string }) {
           </div>
         ))}
       </div>
-      <p>Registration closes soon — get your team sheet ready for DPL 2026.</p>
     </div>
   );
 }
@@ -906,8 +905,21 @@ export default function AuctionPage() {
             <h2>LOADING LIVE BROADCAST AUCTION…</h2>
             {!online && <p>Connecting to broadcast feed — retrying…</p>}
           </div>
-        ) : !session ? (
-          <EmptyStage state={state} countdown={countdown} />
+        ) : !live ? (
+          <div className="la-countdown-only">
+            {countdown != null ? (
+              <CountdownFace
+                seconds={countdown}
+                copy={countdown > 0 ? 'AUCTION STARTS IN' : 'AUCTION TIME — GET READY'}
+              />
+            ) : (
+              <div className="la-stage-empty">
+                <div className="la-stage-empty-badge">🔨</div>
+                <h2>DPL 2026 AUCTION</h2>
+                <p>Live broadcast starts soon — stay tuned.</p>
+              </div>
+            )}
+          </div>
         ) : (
           <>
             {/* Top Broadcast Header */}
@@ -1147,7 +1159,6 @@ export default function AuctionPage() {
         </footer>
       )}
 
-      {!live && <footer>DPL 2026 · DIGITATE PREMIER LEAGUE · OFFICE CRICKET</footer>}
       {fx && <Celebration fx={fx} teams={state?.teams ?? []} onDone={() => setFx(null)} />}
     </div>
   );
