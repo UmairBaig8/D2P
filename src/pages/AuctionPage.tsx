@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useTheme } from '@/lib/useTheme';
 import SiteHeader from '@/components/SiteHeader';
 import { resolveAsset } from '@/lib/base';
@@ -152,6 +153,45 @@ function TeamStrip({ state }: { state: AuctionLiveState }) {
   );
 }
 
+function FlipDigit({ digit }: { digit: string }) {
+  const [previous, setPrevious] = useState(digit);
+  const [flipping, setFlipping] = useState(false);
+  const prevRef = useRef(digit);
+
+  useEffect(() => {
+    if (digit === prevRef.current) return;
+    setPrevious(prevRef.current);
+    prevRef.current = digit;
+    setFlipping(true);
+    const t = window.setTimeout(() => setFlipping(false), 600);
+    return () => window.clearTimeout(t);
+  }, [digit]);
+
+  return (
+    <span className="flip-unit">
+      <span className="flip-card">
+        <span className="flip-half flip-top">
+          <span className="flip-val">{digit}</span>
+        </span>
+        <span className="flip-half flip-bottom">
+          <span className="flip-val">{flipping ? previous : digit}</span>
+        </span>
+        {flipping && (
+          <motion.span
+            className="flip-half flip-fold"
+            initial={{ rotateX: 0 }}
+            animate={{ rotateX: -90 }}
+            transition={{ duration: 0.6, ease: [0.42, 0, 0.58, 1] }}
+            style={{ transformOrigin: '50% 100%' }}
+          >
+            <span className="flip-val">{previous}</span>
+          </motion.span>
+        )}
+      </span>
+    </span>
+  );
+}
+
 function CountdownFace({ seconds, copy }: { seconds: number; copy: string }) {
   const parts = formatCountdown(seconds);
   const cells =
@@ -170,15 +210,30 @@ function CountdownFace({ seconds, copy }: { seconds: number; copy: string }) {
   const pad = (n: number) => String(n).padStart(2, '0');
   return (
     <div className="la-countdown">
-      <span className="la-eyebrow">{copy}</span>
-      <div className="la-countdown-cols">
-        {cells.map((cell) => (
-          <div className="la-countdown-cell" key={cell.k}>
-            <b>{cell.k === 'DAYS' ? cell.v : pad(cell.v)}</b>
-            <span>{cell.k}</span>
-          </div>
-        ))}
+      <div className="la-cd-badge">
+        <img className="la-countdown-hammer" src={resolveAsset('/hammer.svg')} alt="Auction hammer" />
       </div>
+      <span className="la-cd-eyebrow">DPL 2026 · PLAYER AUCTION</span>
+      <h1 className="la-countdown-title">{copy}</h1>
+      <div className="la-countdown-cols">
+        {cells.map((cell, i) => {
+          const text = pad(cell.v);
+          return (
+            <React.Fragment key={cell.k}>
+              {i > 0 && <span className="la-cd-sep">:</span>}
+              <div className="la-cd-unit">
+                <div className="la-cd-pair">
+                  {text.split('').map((ch, j) => (
+                    <FlipDigit key={j} digit={ch} />
+                  ))}
+                </div>
+                <span className="la-cd-label">{cell.k}</span>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+      <p className="la-cd-sub">The hammer drops soon — watch this space.</p>
     </div>
   );
 }
@@ -914,7 +969,9 @@ export default function AuctionPage() {
               />
             ) : (
               <div className="la-stage-empty">
-                <div className="la-stage-empty-badge">🔨</div>
+                <div className="la-stage-empty-badge">
+                  <img src={resolveAsset('/hammer.svg')} alt="Auction hammer" />
+                </div>
                 <h2>DPL 2026 AUCTION</h2>
                 <p>Live broadcast starts soon — stay tuned.</p>
               </div>

@@ -1806,8 +1806,8 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 /* =====================================================================
    LIGHT THEME — auction broadcast surfaces & text
    ===================================================================== */
-.auction-page.live-auction:not(.dark){background:radial-gradient(circle at 85% 8%,rgba(9,201,216,.16),transparent 34%),radial-gradient(circle at 8% 90%,rgba(135,60,255,.14),transparent 40%),linear-gradient(155deg,#f2f6fa 0%,#e6edf4 55%,#f2f6fa 100%)}
-.auction-page.live-auction:not(.dark)::after{background:linear-gradient(180deg,rgba(240,245,250,.78),rgba(240,245,250,.66) 45%,rgba(240,245,250,.82))}
+.auction-page.live-auction:not(.dark){background:var(--bg-teams, url('/D2P/teams.png')) center center/cover no-repeat fixed;background-color:#eef3f6}
+.auction-page.live-auction:not(.dark)::after{background:linear-gradient(180deg,rgba(238,243,248,.62),rgba(238,243,248,.5) 45%,rgba(238,243,248,.72))}
 .auction-page.live-auction:not(.dark) footer{color:#5a6b7a;border-color:rgba(20,45,70,.12)}
 .auction-page.live-auction:not(.dark) .retro-grid-fade{background:radial-gradient(circle at 50% 30%,transparent 20%,#eef3f8 86%)}
 .auction-page.live-auction:not(.dark) .retro-grid-wrap{opacity:.16}
@@ -1940,3 +1940,97 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 .la-countdown-only{flex:1;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:48px 20px;text-align:center}
 .la-countdown-only .la-countdown{width:100%}
 .la-countdown-only .la-stage-empty{width:100%;max-width:520px;margin:0 auto}
+
+
+/* ===== LIGHT THEME — gold/yellow accent legibility on white ===== */
+.auction-page.live-auction:not(.dark) .shiny-badge--gold{color:#7c4a03;background:rgba(255,193,7,.18);border-color:rgba(180,83,9,.5);box-shadow:none}
+.auction-page.live-auction:not(.dark) .pi-badge.gold{color:#7c4a03;background:rgba(255,193,7,.16);border-color:rgba(180,83,9,.45)}
+.auction-page.live-auction:not(.dark) .la-leader-code,
+.auction-page.live-auction:not(.dark) .la-top-prog-label,
+.auction-page.live-auction:not(.dark) .la-progress-head b,
+.auction-page.live-auction:not(.dark) .la-data-col li span,
+.auction-page.live-auction:not(.dark) .la-strip b,
+.auction-page.live-auction:not(.dark) .la-ticker-item b,
+.auction-page.live-auction:not(.dark) .la-drawer-amt,
+.auction-page.live-auction:not(.dark) .pi-next-row em,
+.auction-page.live-auction:not(.dark) .pi-tbody b.val-gold{color:#b45309}
+.auction-page.live-auction:not(.dark) .pi-ic--gold{background:rgba(255,193,7,.16);border-color:rgba(180,83,9,.35);color:#b45309}
+.auction-page.live-auction:not(.dark) .pi-rating{color:#d97706}
+.auction-page.live-auction:not(.dark) .pi-rating em{color:#8a5a00}
+.auction-page.live-auction:not(.dark) .la-tdot.high{background:#d97706;box-shadow:0 0 8px rgba(217,119,6,.55)}
+
+
+/* ===== Auction countdown hero (hammer icon + bold title) ===== */
+.la-countdown-hammer{width:clamp(64px,9vw,120px);height:clamp(64px,9vw,120px);object-fit:contain;margin:0 auto;filter:drop-shadow(0 12px 28px rgba(9,201,216,.4))}
+.la-countdown-title{font:900 italic clamp(32px,4.5vw,66px)/1 'Barlow Condensed';letter-spacing:2px;color:#eef5fb;text-transform:uppercase;margin-top:8px;text-shadow:0 4px 30px rgba(0,0,0,.5)}
+.auction-page.live-auction:not(.dark) .la-countdown-title{color:#0d1b2e;text-shadow:none}
+.la-stage-empty-badge img{width:46px;height:46px;object-fit:contain;filter:brightness(0) invert(1)}
+
+
+/* =====================================================================
+   REIMAGINED OFFLINE COUNTDOWN — hero badge, headline, flip-style cells
+   ===================================================================== */
+.la-countdown{display:flex;flex-direction:column;align-items:center;gap:clamp(14px,2.2vh,24px);margin:0}
+.la-cd-badge{width:clamp(92px,12vw,144px);height:clamp(92px,12vw,144px);border-radius:50%;display:grid;place-items:center;position:relative;background:radial-gradient(circle at 50% 32%,rgba(9,201,216,.24),rgba(135,60,255,.1) 72%);border:1px solid rgba(9,201,216,.4);box-shadow:0 0 0 12px rgba(9,201,216,.06),0 26px 60px -26px rgba(9,201,216,.6)}
+.la-cd-badge::before{content:'';position:absolute;inset:-16px;border-radius:50%;border:1px dashed rgba(9,201,216,.3);animation:cdSpin 22s linear infinite}
+@keyframes cdSpin{to{transform:rotate(360deg)}}
+.la-countdown-hammer{width:56%;height:56%;object-fit:contain;filter:drop-shadow(0 6px 16px rgba(9,201,216,.5))}
+.la-cd-eyebrow{font:900 clamp(11px,1vw,15px) Inter;letter-spacing:5px;color:#09c9d8;text-transform:uppercase}
+.la-countdown-title{font:900 italic clamp(40px,6vw,96px)/.92 'Barlow Condensed';letter-spacing:1px;text-transform:uppercase;margin:0;background:linear-gradient(90deg,#eaf4ff 0%,#9cc4ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 30px rgba(9,201,216,.25))}
+.la-countdown-cols{display:flex;align-items:center;gap:clamp(8px,1.4vw,18px);flex-wrap:wrap;justify-content:center}
+.la-countdown-cell{min-width:clamp(86px,10vw,142px);border-radius:20px;padding:clamp(20px,3vh,32px) 14px clamp(12px,1.8vh,18px);text-align:center;background:linear-gradient(170deg,rgba(17,28,45,.88),rgba(10,17,28,.94));border:1px solid rgba(255,255,255,.13);box-shadow:0 26px 60px -26px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.09);position:relative;overflow:hidden}
+.la-countdown-cell::after{content:'';position:absolute;left:12%;right:12%;top:50%;height:1px;background:rgba(255,255,255,.08)}
+.la-countdown-cell b{display:block;font:900 italic clamp(42px,6.5vw,80px)/.85 'Barlow Condensed';color:#fff;font-variant-numeric:tabular-nums;letter-spacing:1px;text-shadow:0 2px 26px rgba(9,201,216,.4)}
+.la-countdown-cell span{display:block;margin-top:8px;font:900 clamp(9px,.8vw,12px) Inter;letter-spacing:3px;color:#09c9d8}
+.la-cd-sep{font:900 clamp(28px,4vw,56px)/1 'Barlow Condensed';color:rgba(9,201,216,.55);animation:cdBlink 1s steps(2) infinite}
+@keyframes cdBlink{50%{opacity:.2}}
+.la-cd-sub{color:#7d93a5;font:700 clamp(11px,1vw,14px) Inter;letter-spacing:.5px;margin:0}
+
+/* light theme */
+.auction-page.live-auction:not(.dark) .la-cd-badge{background:radial-gradient(circle at 50% 32%,rgba(9,201,216,.16),rgba(135,60,255,.08) 72%);border-color:rgba(9,201,216,.45);box-shadow:0 0 0 12px rgba(9,201,216,.05),0 26px 60px -30px rgba(9,201,216,.5)}
+.auction-page.live-auction:not(.dark) .la-countdown-title{background:linear-gradient(90deg,#0d1b2e 0%,#2867ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:none}
+.auction-page.live-auction:not(.dark) .la-countdown-cell{background:rgba(255,255,255,.85);border-color:rgba(20,45,70,.14);box-shadow:0 26px 60px -30px rgba(20,45,70,.4),inset 0 1px 0 rgba(255,255,255,.95)}
+.auction-page.live-auction:not(.dark) .la-countdown-cell::after{background:rgba(20,45,70,.07)}
+.auction-page.live-auction:not(.dark) .la-countdown-cell b{color:#0d1b2e;text-shadow:none}
+.auction-page.live-auction:not(.dark) .la-cd-sep{color:rgba(40,103,255,.45)}
+.auction-page.live-auction:not(.dark) .la-cd-sub{color:#5a6b7a}
+
+
+/* =====================================================================
+   RETRO FLIP-CLOCK COUNTDOWN — split-flap digits
+   ===================================================================== */
+.la-cd-unit{display:flex;flex-direction:column;align-items:center;gap:12px}
+.la-cd-pair{display:flex;gap:6px}
+.la-cd-label{font:900 clamp(9px,.8vw,12px) Inter;letter-spacing:3px;color:#09c9d8}
+.la-cd-sep{transform:translateY(-13px)}
+
+.flip-unit{--fw:clamp(46px,5.5vw,78px);--fh:clamp(60px,8vw,104px);--fs:clamp(32px,4.8vw,64px);position:relative;width:var(--fw);height:var(--fh)}
+.flip-card{position:absolute;inset:0;perspective:640px}
+.flip-half{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:linear-gradient(180deg,#263146,#0a1120);color:#fff;text-align:center;font-variant-numeric:tabular-nums}
+.flip-top{top:0;border-radius:12px 12px 2px 2px;border-bottom:1px solid #040810;box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+.flip-bottom{bottom:0;border-radius:2px 2px 12px 12px;box-shadow:inset 0 -1px 0 rgba(0,0,0,.55),0 10px 18px -10px rgba(0,0,0,.55)}
+.flip-val{display:block;font:900 var(--fs)/var(--fh) 'Barlow Condensed';letter-spacing:1px}
+.flip-bottom .flip-val{transform:translateY(-50%)}
+.flip-fold{top:0;transform-origin:50% 100%;border-radius:12px 12px 2px 2px;border-bottom:1px solid #040810;box-shadow:inset 0 1px 0 rgba(255,255,255,.1);animation:flipFold .6s cubic-bezier(.55,.06,.6,.5) forwards;z-index:3}
+@keyframes flipFold{0%{transform:rotateX(0);filter:brightness(1)}100%{transform:rotateX(-90deg);filter:brightness(.4)}}
+
+
+/* =====================================================================
+   SMOOTH FLIP-CLOCK (motion) — single card 3D flip, no flicker
+   ===================================================================== */
+.flip-unit{--fw:clamp(46px,5.5vw,78px);--fh:clamp(60px,8vw,104px);--fs:clamp(32px,4.8vw,64px);position:relative;width:var(--fw);height:var(--fh);perspective:900px}
+.flip-card{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(180deg,#263146,#0a1120);color:#fff;border-radius:12px;font:900 var(--fs)/1 'Barlow Condensed';font-variant-numeric:tabular-nums;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 12px 22px -12px rgba(0,0,0,.6);backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flip-card::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.07)}
+
+
+/* =====================================================================
+   3D SPLIT-FLAP FLIP CLOCK — only top half folds, perspective depth
+   ===================================================================== */
+.flip-unit{--fw:clamp(46px,5.5vw,78px);--fh:clamp(60px,8vw,104px);--fs:clamp(32px,4.8vw,64px);position:relative;width:var(--fw);height:var(--fh)}
+.flip-card{position:absolute;inset:0;display:block;background:transparent;border-radius:12px;perspective:620px}
+.flip-half{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:linear-gradient(180deg,#2a3650,#0a1120);color:#fff;text-align:center;font-variant-numeric:tabular-nums}
+.flip-top{top:0;border-radius:12px 12px 0 0;border-bottom:1px solid #03060d;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -8px 14px -8px rgba(0,0,0,.6)}
+.flip-bottom{bottom:0;border-radius:0 0 12px 12px;box-shadow:inset 0 -1px 0 rgba(0,0,0,.5),inset 0 8px 14px -8px rgba(0,0,0,.55)}
+.flip-val{display:block;font:900 var(--fs)/var(--fh) 'Barlow Condensed';letter-spacing:1px}
+.flip-bottom .flip-val{transform:translateY(-50%)}
+.flip-fold{top:0;border-radius:12px 12px 0 0;border-bottom:1px solid #03060d;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);backface-visibility:hidden;-webkit-backface-visibility:hidden;z-index:3}
