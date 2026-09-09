@@ -421,7 +421,12 @@ function TeamsPanel({
           const low = !isHighest && !isFull && team.budget > 0 && left / team.budget < 0.15;
           const squadCount = Math.min(11, Math.max(0, team.squad || 0));
 
-          let status = { text: '', cls: '', dot: 'watch', badgeVar: 'cyan' as const };
+          let status: { text: string; cls: string; dot: string; badgeVar: 'cyan' | 'gold' | 'green' | 'red' | 'purple' } = {
+            text: '',
+            cls: '',
+            dot: 'watch',
+            badgeVar: 'cyan',
+          };
           if (isFull) status = { text: 'FULL', cls: 'full', dot: 'full', badgeVar: 'purple' as const };
           else if (isHighest) status = { text: '👑 HIGHEST', cls: 'high', dot: 'high', badgeVar: 'gold' as const };
           else if (activeCodes.has(team.code)) status = { text: 'BIDDING', cls: 'bid', dot: 'bid', badgeVar: 'green' as const };
