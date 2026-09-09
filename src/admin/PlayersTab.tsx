@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronLeft, ChevronRight, Crown, Download, Loader2, Mail, MapPin, Pencil, Shield, Star, UserCheck, UserPlus, Users } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronLeft, ChevronRight, Crown, Download, Loader2, Mail, MapPin, Pencil, Shield, Star, UserCheck, UserPlus, UserX, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ const BOWLING_ARMS = ['Right arm', 'Left arm', 'Not applicable'];
 const CRICKET_EXPERIENCES = ['New to cricket', 'Casual player', 'Club / college player', 'Experienced league player'];
 const JERSEY_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 const AVAILABILITIES = ['Available for all matches', 'Available for most matches', 'Need schedule confirmation'];
-const ROLES = ['owner', 'co_owner', 'captain', 'vice_captain', 'player'];
+const ROLES = ['owner', 'co_owner', 'captain', 'vice_captain', 'retained', 'player'];
 
 type AddPlayerForm = {
   name: string;
@@ -67,7 +67,7 @@ function playerTypes(players: AdminPlayer[]): string[] {
 
 function toCSV(players: AdminPlayer[], teams: AdminTeam[]): string {
   const teamCode = new Map(teams.map((team) => [team.id, team.code ?? team.name]));
-  const header = ['name', 'email', 'employee_id', 'gender', 'location', 'player_type', 'dpl_played', 'self_rating', 'batting_style', 'bowling_style', 'availability', 'team', 'role', 'created_at'];
+  const header = ['name', 'email', 'employee_id', 'gender', 'location', 'player_type', 'dpl_played', 'forfeited', 'self_rating', 'batting_style', 'bowling_style', 'availability', 'team', 'role', 'created_at'];
   const escape = (value: string | null | undefined) => `"${(value ?? '').replace(/"/g, '""')}"`;
   const rows = players.map((player) => [
     escape(player.name),
@@ -77,6 +77,7 @@ function toCSV(players: AdminPlayer[], teams: AdminTeam[]): string {
     escape(player.location),
     escape(player.player_type),
     player.dpl_played ? 'yes' : 'no',
+    player.forfeited ? 'yes' : 'no',
     String(player.self_rating),
     escape(player.batting_style),
     escape(player.bowling_style),
@@ -242,6 +243,13 @@ export default function PlayersTab({ preset: presetProp = null, onPresetApplied 
     const { error } = await adminUpdatePlayer(player.id, { dpl_played: !player.dpl_played });
     if (error) toast.error(`Failed: ${error}`);
     else toast.success(`${player.name} DPL status toggled.`);
+    if (!error) reload();
+  };
+
+  const flipForfeit = async (player: AdminPlayer) => {
+    const { error } = await adminUpdatePlayer(player.id, { forfeited: !player.forfeited });
+    if (error) toast.error(`Failed: ${error}`);
+    else toast.success(`${player.name} ${player.forfeited ? 'reinstated' : 'forfeited'}.`);
     if (!error) reload();
   };
 
@@ -514,17 +522,24 @@ export default function PlayersTab({ preset: presetProp = null, onPresetApplied 
                   </Select>
                 </TableCell>
                 <TableCell>
-                  {player.role === 'owner' ? <Badge variant="secondary"><Crown /> OWNER</Badge>
+                  {player.forfeited ? <Badge variant="destructive"><UserX /> FORFEITED</Badge>
+                    : player.role === 'owner' ? <Badge variant="secondary"><Crown /> OWNER</Badge>
                     : player.role === 'co_owner' ? <Badge variant="secondary"><Crown /> CO-OWNER</Badge>
                     : player.role === 'captain' ? <Badge variant="secondary"><Shield /> CAPTAIN</Badge>
                     : player.role === 'vice_captain' ? <Badge variant="secondary"><Shield /> VC</Badge>
+                    : player.role === 'retained' ? <Badge variant="secondary"><Star /> RETAINED</Badge>
                     : player.dpl_played ? <Badge variant="outline"><UserCheck /> VET</Badge>
                     : <span className="text-xs text-muted-foreground">ROOKIE</span>}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); flipDpl(player); }}>
-                    {player.dpl_played ? 'VET' : 'ROOKIE'}
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); flipDpl(player); }}>
+                      {player.dpl_played ? 'VET' : 'ROOKIE'}
+                    </Button>
+                    <Button variant={player.forfeited ? 'destructive' : 'ghost'} size="sm" onClick={(event) => { event.stopPropagation(); flipForfeit(player); }}>
+                      {player.forfeited ? 'UNFORFEIT' : 'FORFEIT'}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

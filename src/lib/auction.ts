@@ -85,6 +85,7 @@ export type NextUpPlayer = {
 
 export type AuctionLiveState = {
   session: AuctionSession | null;
+  squad_size?: number;
   current_player: AuctionPlayerView | null;
   current_bid: AuctionCurrentBid | null;
   bid_count: number;
@@ -126,6 +127,7 @@ export type AuctionAdminBid = {
 
 export type AuctionAdminState = {
   session: AuctionSession | null;
+  squad_size?: number;
   current_player: AuctionPlayerView | null;
   current_bid: AuctionCurrentBid | null;
   players: AuctionAdminLot[];
@@ -147,8 +149,7 @@ export function formatCompact(amount: number | null | undefined): string {
   const sign = value < 0 ? '-' : '';
   if (abs >= 10000000) return `${sign}₹${trimZero((abs / 10000000).toFixed(1))}Cr`;
   if (abs >= 100000) return `${sign}₹${trimZero((abs / 100000).toFixed(1))}L`;
-  if (abs >= 1000) return `${sign}₹${(abs / 1000).toFixed(0)}K`;
-  return `${sign}₹${abs}`;
+  return `${sign}₹${abs.toLocaleString('en-IN')}`;
 }
 
 function trimZero(text: string): string {
@@ -251,6 +252,33 @@ export async function fetchAuctionLiveState(): Promise<AuctionLiveState | null> 
   const { data, error } = await supabase.rpc('auction_live_state');
   if (error || !data) return null;
   return data as AuctionLiveState;
+}
+
+// ---- Realtime ----
+// Subscribe to the auction tables via Supabase Realtime (WebSocket). Any
+// bid/result/session change triggers `onChange` (debounced) so viewers get
+// sub-second updates without the 4s polling tax.
+
+export function subscribeAuctionRealtime(onChange: () => void): () => void {
+  if (!supabase) return () => {};
+  let timer: number | undefined;
+  const schedule = () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(onChange, 120);
+  };
+  const changes = { schema: 'public' } as const;
+  const channel = supabase
+    .channel('auction-live')
+    .on('postgres_changes', { ...changes, event: 'INSERT', table: 'auction_bids' }, schedule)
+    .on('postgres_changes', { ...changes, event: 'INSERT', table: 'auction_results' }, schedule)
+    .on('postgres_changes', { ...changes, event: 'UPDATE', table: 'auction_results' }, schedule)
+    .on('postgres_changes', { ...changes, event: 'UPDATE', table: 'auction_sessions' }, schedule)
+    .on('postgres_changes', { ...changes, event: 'UPDATE', table: 'auction_purses' }, schedule)
+    .subscribe();
+  return () => {
+    window.clearTimeout(timer);
+    void supabase?.removeChannel(channel);
+  };
 }
 
 // ---- Admin RPCs (all guarded by is_admin() server-side) ----

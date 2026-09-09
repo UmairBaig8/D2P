@@ -76,6 +76,7 @@ export type TeamRow = {
   captain: string | null;
   champion: boolean;
   player_count: number;
+  squad_size: number;
   sort_order: number;
 };
 
@@ -194,6 +195,7 @@ export type AdminPlayer = {
   gender: string;
   location: string;
   dpl_played: boolean;
+  forfeited: boolean;
   self_rating: number;
   batting_style: string | null;
   bowling_style: string | null;
@@ -260,6 +262,7 @@ export async function adminSaveSettings(patch: {
   player_capacity?: number;
   total_teams?: number;
   total_matches?: number;
+  squad_size?: number;
   champion?: string | null;
 }): Promise<{ error?: string }> {
   if (!supabase) return { error: 'Supabase is not configured.' };
@@ -341,6 +344,7 @@ export async function adminUpdatePlayer(playerId: string, patch: {
   employee_id?: string | null;
   location?: string;
   dpl_played?: boolean;
+  forfeited?: boolean;
   player_type?: string;
   gender?: string;
   self_rating?: number;

@@ -43,7 +43,7 @@ import {
 } from '@/lib/site';
 
 const THEME_CHOICES = ['kings', 'mavale', 'mitra', 'blaster', 'dhada', 'wala', 'titans', 'yodhas', 'gallit', 'dhurandhars'];
-const SQUAD_SIZE = 11;
+const SQUAD_SIZE = 15;
 
 function toLocal(dt: string | null | undefined): string {
   if (!dt) return '';
@@ -59,6 +59,7 @@ const settingsSchema = z.object({
   player_capacity: z.string().regex(/^\d+$/, 'Must be a number.'),
   total_teams: z.string().regex(/^\d+$/, 'Must be a number.'),
   total_matches: z.string().regex(/^\d+$/, 'Must be a number.'),
+  squad_size: z.string().regex(/^\d+$/, 'Must be a number.'),
   champion: z.string(),
 });
 
@@ -387,6 +388,7 @@ function SettingsTab() {
       player_capacity: '128',
       total_teams: '16',
       total_matches: '24',
+      squad_size: '15',
       champion: '',
     },
   });
@@ -402,6 +404,7 @@ function SettingsTab() {
         player_capacity: String(data.player_capacity ?? 128),
         total_teams: String(data.total_teams ?? 16),
         total_matches: String(data.total_matches ?? 24),
+        squad_size: String(data.squad_size ?? 15),
         champion: data.champion ?? '',
       });
       setLoading(false);
@@ -416,6 +419,7 @@ function SettingsTab() {
       player_capacity: Number(values.player_capacity),
       total_teams: Number(values.total_teams),
       total_matches: Number(values.total_matches),
+      squad_size: Number(values.squad_size),
       champion: values.champion || null,
     });
     if (error) toast.error(`Failed: ${error}`);
@@ -488,6 +492,13 @@ function SettingsTab() {
                   <FormMessage />
                 </FormItem>
               )} />
+              <FormField control={form.control} name="squad_size" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>SQUAD SIZE (PER TEAM)</FormLabel>
+                  <FormControl><Input type="number" min={1} {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <FormField control={form.control} name="champion" render={({ field }) => (
                 <FormItem>
                   <FormLabel>CHAMPION LABEL</FormLabel>
@@ -510,6 +521,7 @@ function SettingsTab() {
 function TeamsTab() {
   const [teams, setTeams] = useState<AdminTeam[] | null>(null);
   const [players, setPlayers] = useState<AdminPlayer[]>([]);
+  const [squadSize, setSquadSize] = useState(SQUAD_SIZE);
   const [editing, setEditing] = useState<AdminTeam | null>(null);
   const [teamToDelete, setTeamToDelete] = useState<AdminTeam | null>(null);
   const [squadTeam, setSquadTeam] = useState<AdminTeam | null>(null);
@@ -518,6 +530,13 @@ function TeamsTab() {
   const reload = () => {
     fetchAdminTeams().then(setTeams);
     fetchAdminPlayers().then(setPlayers);
+    supabaseRef
+      ?.from('settings')
+      .select('squad_size')
+      .eq('id', 1)
+      .single()
+      .then(({ data }) => setSquadSize(data?.squad_size ?? SQUAD_SIZE))
+      .catch(() => undefined);
   };
 
   useEffect(reload, []);
@@ -565,7 +584,7 @@ function TeamsTab() {
     const members = players
       .filter((player) => player.team_id === team.id)
       .sort((a, b) => {
-        const rank = { owner: 0, co_owner: 1, captain: 2, vice_captain: 3, player: 4 };
+        const rank = { owner: 0, co_owner: 1, captain: 2, vice_captain: 3, retained: 4, player: 5 };
         return (rank[a.role as keyof typeof rank] ?? 4) - (rank[b.role as keyof typeof rank] ?? 4) || a.name.localeCompare(b.name);
       });
     const win = window.open('', '_blank', 'width=780,height=920');
@@ -575,7 +594,7 @@ function TeamsTab() {
     }
     const rows = members.length
       ? members.map((player, index) => {
-          const role = player.role === 'owner' ? 'OWNER' : player.role === 'co_owner' ? 'CO-OWNER' : player.role === 'captain' ? 'CAPTAIN' : player.role === 'vice_captain' ? 'VICE CAPTAIN' : 'PLAYER';
+          const role = player.role === 'owner' ? 'OWNER' : player.role === 'co_owner' ? 'CO-OWNER' : player.role === 'captain' ? 'CAPTAIN' : player.role === 'vice_captain' ? 'VICE CAPTAIN' : player.role === 'retained' ? 'RETAINED' : 'PLAYER';
           return `<tr>
             <td class="num">${index + 1}</td>
             <td><strong>${player.name}</strong><br/><span class="sub">${player.location || '—'} · ${player.player_type || '—'}</span></td>
@@ -604,7 +623,7 @@ function TeamsTab() {
         <div><h1>${team.name.toUpperCase()}</h1><div class="code">${team.code} · ${team.theme || ''}</div></div>
         <div style="text-align:right"><h1>DPL 2026</h1><div class="code">SQUAD ROSTER</div></div>
       </div>
-      <div class="meta"><span>${members.length} players · squad size ${SQUAD_SIZE}</span><span>Printed ${new Date().toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></div>
+      <div class="meta"><span>${members.length} players · squad size ${squadSize}</span><span>Printed ${new Date().toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></div>
       <table>
         <thead><tr><th>#</th><th>PLAYER</th><th>ROLE</th><th>RATING</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -667,10 +686,10 @@ function TeamsTab() {
                 </TableCell>
                 <TableCell>
                   {(() => {
-                    const squadSize = players.filter((player) => player.team_id === team.id).length;
-                    if (squadSize > SQUAD_SIZE) return <Badge variant="default" className="bg-destructive/15 text-destructive hover:bg-destructive/15">{squadSize}/{SQUAD_SIZE} OVER</Badge>;
-                    if (squadSize < SQUAD_SIZE) return <Badge variant="default" className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/15">{squadSize}/{SQUAD_SIZE} SHORT</Badge>;
-                    return <Badge variant="default" className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15">{squadSize}/{SQUAD_SIZE} FULL</Badge>;
+                    const count = players.filter((player) => player.team_id === team.id).length;
+                    if (count > squadSize) return <Badge variant="default" className="bg-destructive/15 text-destructive hover:bg-destructive/15">{count}/{squadSize} OVER</Badge>;
+                    if (count < squadSize) return <Badge variant="default" className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/15">{count}/{squadSize} SHORT</Badge>;
+                    return <Badge variant="default" className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15">{count}/{squadSize} FULL</Badge>;
                   })()}
                 </TableCell>
                 <TableCell className="text-right">
@@ -762,7 +781,7 @@ function TeamsTab() {
               const members = players
                 .filter((player) => player.team_id === squadTeam?.id)
                 .sort((a, b) => {
-                  const rank = { owner: 0, co_owner: 1, captain: 2, vice_captain: 3, player: 4 };
+        const rank = { owner: 0, co_owner: 1, captain: 2, vice_captain: 3, retained: 4, player: 5 };
                   return (rank[a.role as keyof typeof rank] ?? 4) - (rank[b.role as keyof typeof rank] ?? 4) || a.name.localeCompare(b.name);
                 });
               if (!members.length) {
@@ -785,7 +804,9 @@ function TeamsTab() {
                     ? <Badge variant="secondary"><Shield /> CAPTAIN</Badge>
                     : player.role === 'vice_captain'
                       ? <Badge variant="secondary"><Shield /> VC</Badge>
-                      : <Badge variant="outline">PLAYER</Badge>}
+                      : player.role === 'retained'
+                        ? <Badge variant="secondary">RETAINED</Badge>
+                        : <Badge variant="outline">PLAYER</Badge>}
                 </div>
               ));
             })()}

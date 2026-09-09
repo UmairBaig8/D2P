@@ -1,16 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/lib/useTheme';
 import SiteHeader from '@/components/SiteHeader';
 import { resolveAsset } from '@/lib/base';
 import {
   fetchAuctionLiveState,
   fetchAuctionSchedule,
+  subscribeAuctionRealtime,
   formatCompact,
   formatCountdown,
   formatInr,
   type AuctionLiveState,
-  type NextUpPlayer,
+  type AuctionResultRow,
 } from '@/lib/auction';
 import RetroGrid from '@/components/ui/RetroGrid';
 import BorderBeam from '@/components/ui/BorderBeam';
@@ -21,6 +21,40 @@ import { Volume2, VolumeX, Radio, Sparkles } from 'lucide-react';
 
 function initials(name: string): string {
   return name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase();
+}
+
+// Lightweight capability gate: skip expensive canvas/CSS effects on low-power
+// devices or when the user prefers reduced motion.
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+const isLowPower = () =>
+  typeof navigator !== 'undefined' && (navigator.hardwareConcurrency ?? 8) <= 4;
+const FX_ENABLED = !prefersReducedMotion() && !isLowPower();
+
+// Cheap change-signature so we can skip a full re-render when the live state
+// hasn't actually changed between polls/realtime events.
+function liveStateSignature(state: AuctionLiveState | null): string {
+  if (!state) return '';
+  const bid = state.current_bid;
+  const player = state.current_player;
+  const results = state.results ?? [];
+  const last = results[results.length - 1];
+  return [
+    state.session?.updated_at,
+    state.session?.status,
+    player?.player_id,
+    player?.timer_ends_at,
+    bid?.team_id,
+    bid?.amount,
+    bid?.created_at,
+    state.bid_count,
+    state.pool_count,
+    results.length,
+    last?.lot_order,
+    last?.status,
+    last?.sold_price,
+    last?.team_code,
+  ].join('|');
 }
 
 // Web Audio API Sound Synthesizer (No external assets required)
@@ -91,28 +125,38 @@ function createAudioSynth() {
 const synth = createAudioSynth();
 
 function useCountdown(endAt: string | null | undefined, soundOn: boolean): number | null {
-  const [now, setNow] = useState(() => Date.now());
-  const prevSec = useRef<number | null>(null);
+  const [rem, setRem] = useState<number | null>(() =>
+    endAt ? Math.max(0, Math.ceil((new Date(endAt).getTime() - Date.now()) / 1000)) : null
+  );
 
   useEffect(() => {
-    if (!endAt) return;
-    const id = window.setInterval(() => setNow(Date.now()), 500);
+    if (!endAt) {
+      setRem(null);
+      return;
+    }
+    const tick = () => {
+      const next = Math.max(0, Math.ceil((new Date(endAt).getTime() - Date.now()) / 1000));
+      setRem((prev) => (prev === next ? prev : next));
+    };
+    tick();
+    const id = window.setInterval(tick, 250);
     return () => window.clearInterval(id);
   }, [endAt]);
 
-  if (!endAt) return null;
-  const rem = Math.max(0, Math.ceil((new Date(endAt).getTime() - now) / 1000));
-
-  if (soundOn && rem > 0 && rem <= 10 && prevSec.current !== rem) {
-    prevSec.current = rem;
-    synth.playTick();
-  }
+  const prevSec = useRef<number | null>(null);
+  useEffect(() => {
+    if (soundOn && rem != null && rem > 0 && rem <= 10 && prevSec.current !== rem) {
+      prevSec.current = rem;
+      synth.playTick();
+    }
+  }, [rem, soundOn]);
 
   return rem;
 }
 
 function TeamStrip({ state }: { state: AuctionLiveState }) {
   const teams = state.teams ?? [];
+  const squadSize = state.squad_size ?? 11;
   const totalBudget = teams.reduce((sum, team) => sum + team.budget, 0);
   return (
     <div className="la-purse">
@@ -132,7 +176,7 @@ function TeamStrip({ state }: { state: AuctionLiveState }) {
                     <span className="la-team-icon la-team-icon--fb">{initials(team.name)}</span>
                   )}
                   <span className="la-team-code">{team.code || team.name}</span>
-                  <span className="la-team-squad">{team.squad}/11</span>
+                  <span className="la-team-squad">{team.squad}/{squadSize}</span>
                 </div>
                 <div className="la-team-bar">
                   <i style={{ width: `${pct}%` }} />
@@ -177,15 +221,9 @@ function FlipDigit({ digit }: { digit: string }) {
           <span className="flip-val">{flipping ? previous : digit}</span>
         </span>
         {flipping && (
-          <motion.span
-            className="flip-half flip-fold"
-            initial={{ rotateX: 0 }}
-            animate={{ rotateX: -90 }}
-            transition={{ duration: 0.6, ease: [0.42, 0, 0.58, 1] }}
-            style={{ transformOrigin: '50% 100%' }}
-          >
+          <span className="flip-half flip-fold">
             <span className="flip-val">{previous}</span>
-          </motion.span>
+          </span>
         )}
       </span>
     </span>
@@ -349,17 +387,10 @@ function CircularTimer({ remaining, total }: { remaining: number | null; total: 
   );
 }
 
-function PlayerStats({
-  player,
-  nextUp,
-}: {
-  player: NonNullable<AuctionLiveState['current_player']>;
-  nextUp: NextUpPlayer[];
-}) {
+function PlayerStats({ player }: { player: NonNullable<AuctionLiveState['current_player']> }) {
   const bat = (player.batting_style ?? '').replace(/\s*batter$/i, '').trim() || '—';
   const bowl = player.bowling_style?.replace('Do not bowl', 'NO BOWL') || '—';
   const rating = Math.max(1, Math.min(5, player.self_rating || 0));
-  const next = nextUp[0];
 
   const tiles: { icon: string; label: string; value: string; tone?: 'cyan' | 'green' | 'gold' | 'violet' }[] = [
     { icon: '🏏', label: 'BATTING', value: bat },
@@ -369,68 +400,43 @@ function PlayerStats({
   ];
 
   return (
-    <>
-      <section className="pi-panel pi-stats">
-        <div className="pi-head">
-          <span className={`pi-avatar${player.dpl_played ? ' pi-avatar--vet' : ''}`}>{initials(player.name)}</span>
-          <div className="pi-id">
-            <div className="pi-id-row">
-              <ShinyBadge variant={player.dpl_played ? 'gold' : 'cyan'}>
-                {player.dpl_played ? '★ DPL VET' : 'DPL ROOKIE'}
-              </ShinyBadge>
-              <span className="pi-lot">LOT #{player.lot_order}</span>
-            </div>
-            <span className="pi-sub">
-              {player.location}
-              {player.gender ? ` · ${player.gender}` : ''}
-            </span>
+    <section className="pi-panel pi-stats">
+      <div className="pi-head">
+        <span className={`pi-avatar${player.dpl_played ? ' pi-avatar--vet' : ''}`}>{initials(player.name)}</span>
+        <div className="pi-id">
+          <div className="pi-id-row">
+            <ShinyBadge variant={player.dpl_played ? 'gold' : 'cyan'}>
+              {player.dpl_played ? '★ DPL VET' : 'DPL ROOKIE'}
+            </ShinyBadge>
+            <span className="pi-lot">LOT #{player.lot_order}</span>
           </div>
-          <span className="pi-rating" aria-label={`${player.self_rating} out of 5`}>
-            {'★'.repeat(rating)}
-            <em>{player.self_rating}.0</em>
+          <span className="pi-sub">
+            {player.location}
+            {player.gender ? ` · ${player.gender}` : ''}
           </span>
         </div>
-        <div className="pi-sep" />
-        <div className="pi-grid">
-          {tiles.map((tile) => (
-            <div className="pi-tile" key={tile.label}>
-              <span className={`pi-ic${tile.tone ? ` pi-ic--${tile.tone}` : ''}`}>{tile.icon}</span>
-              <div className="pi-tbody">
-                <span>{tile.label}</span>
-                <b className={tile.tone ? `val-${tile.tone}` : ''}>{tile.value}</b>
-              </div>
+        <span className="pi-rating" aria-label={`${player.self_rating} out of 5`}>
+          {'★'.repeat(rating)}
+          <em>{player.self_rating}.0</em>
+        </span>
+      </div>
+      <div className="pi-sep" />
+      <div className="pi-grid">
+        {tiles.map((tile) => (
+          <div className="pi-tile" key={tile.label}>
+            <span className={`pi-ic${tile.tone ? ` pi-ic--${tile.tone}` : ''}`}>{tile.icon}</span>
+            <div className="pi-tbody">
+              <span>{tile.label}</span>
+              <b className={tile.tone ? `val-${tile.tone}` : ''}>{tile.value}</b>
             </div>
-          ))}
-        </div>
-        <div className="pi-meta">
-          <span className="pi-chip">BASE <b>{formatCompact(player.base_price)}</b></span>
-          <span className="pi-chip">TYPE <b>{player.player_type}</b></span>
-        </div>
-      </section>
-
-      <section className="pi-panel pi-nextcard">
-        <div className="pi-next-head">
-          <span>UP NEXT</span>
-          {next && <em className="pi-queue">LOT #{next.lot_order}</em>}
-        </div>
-        {next ? (
-          <div className="pi-next-row">
-            {next.photo_url ? (
-              <img src={next.photo_url} alt={next.name} />
-            ) : (
-              <span className="pi-next-av">{initials(next.name)}</span>
-            )}
-            <div className="pi-next-info">
-              <b>{next.name}</b>
-              <span>{next.player_type}</span>
-            </div>
-            <em>BASE {formatCompact(next.base_price)}</em>
           </div>
-        ) : (
-          <div className="pi-next-empty">Queue complete — every player has been processed.</div>
-        )}
-      </section>
-    </>
+        ))}
+      </div>
+      <div className="pi-meta">
+        <span className="pi-chip">BASE <b>{formatCompact(player.base_price)}</b></span>
+        <span className="pi-chip">TYPE <b>{player.player_type}</b></span>
+      </div>
+    </section>
   );
 }
 
@@ -439,11 +445,13 @@ function TeamsPanel({
   bid,
   bidRows,
   floor,
+  squadSize,
 }: {
   teams: AuctionLiveState['teams'];
   bid: AuctionLiveState['current_bid'];
   bidRows: AuctionLiveState['bids'];
   floor: number;
+  squadSize: number;
 }) {
   const [pulseCode, setPulseCode] = useState<string | null>(null);
   const prevBid = useRef<string | null>(null);
@@ -470,10 +478,10 @@ function TeamsPanel({
         {teams.map((team) => {
           const left = team.budget - team.spent;
           const isHighest = bid?.team_id === team.team_id;
-          const isFull = team.squad >= 11;
+          const isFull = team.squad >= squadSize;
           const inRange = left > floor;
           const low = !isHighest && !isFull && team.budget > 0 && left / team.budget < 0.15;
-          const squadCount = Math.min(11, Math.max(0, team.squad || 0));
+          const squadCount = Math.min(squadSize, Math.max(0, team.squad || 0));
 
           let status: { text: string; cls: string; dot: string; badgeVar: 'cyan' | 'gold' | 'green' | 'red' | 'purple' } = {
             text: '',
@@ -535,14 +543,14 @@ function TeamsPanel({
                 />
               </div>
 
-              {/* Visual 11-Slot Squad Matrix */}
+              {/* Visual Squad Slot Matrix */}
               <div className="la-tcard-sq">
                 <div className="la-tcard-line">
                   <span>SQUAD SLOTS</span>
-                  <b>{squadCount}/11</b>
+                  <b>{squadCount}/{squadSize}</b>
                 </div>
-                <div className="la-sq-matrix" aria-label={`Squad ${squadCount} of 11 filled`}>
-                  {Array.from({ length: 11 }).map((_, i) => (
+                <div className="la-sq-matrix" aria-label={`Squad ${squadCount} of ${squadSize} filled`}>
+                  {Array.from({ length: squadSize }).map((_, i) => (
                     <span
                       key={i}
                       className={`la-sq-dot${i < squadCount ? ' filled' : ''}`}
@@ -570,6 +578,7 @@ type FxEvent = {
 function ConfettiLayer({ heat }: { heat: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
+    if (!FX_ENABLED) return;
     const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -617,6 +626,7 @@ function ConfettiLayer({ heat }: { heat: number }) {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [heat]);
+  if (!FX_ENABLED) return null;
   return <canvas ref={ref} className="fx-confetti" />;
 }
 
@@ -718,31 +728,75 @@ function AVAIL2(availability: string | null | undefined): string {
   return availability.replace('Available for ', '').replace('Need schedule confirmation', 'CONFIRM').toUpperCase();
 }
 
-function EmptyStage({ state, countdown }: { state: AuctionLiveState; countdown: number | null }) {
-  if (countdown != null) {
-    return (
-      <div className="la-stage-empty la-stage-empty--count">
-        <div className="la-stage-empty-badge">🔨</div>
-        <h2>
-          DPL 2026 <span>PLAYER AUCTION</span>
-        </h2>
-        <CountdownFace seconds={countdown} copy={countdown > 0 ? 'AUCTION STARTS IN' : 'AUCTION TIME — GET READY'} />
-      </div>
-    );
-  }
-  const live = state.session?.status === 'live';
-  const done = (state.results ?? []).length;
+// Suspense teaser shown while the session is live but no lot is on stage —
+// the next player is a surprise, so we reveal nothing about who's coming.
+function NextLotTeaser() {
   return (
-    <div className="la-stage-empty">
-      <div className="la-stage-empty-badge">{live ? '⏳' : state.session ? '🔚' : '🔨'}</div>
-      <h2>{!state.session ? 'AUCTION PLATFORM' : live ? 'NEXT LOT COMING UP…' : 'AUCTION WRAPPED'}</h2>
-      <p>
-        {!state.session
-          ? 'The DPL 2026 player auction has not started yet.'
-          : live
-          ? `${state.pool_count ?? 0} players still in the pool. Watch this space.`
-          : `${done} lots closed — every squad is set. Final results below.`}
-      </p>
+    <div className="la-teaser">
+      <span className="la-teaser-ring" />
+      <div className="la-teaser-copy">
+        <span className="la-teaser-eyebrow">DPL 2026 · AUCTION LIVE</span>
+        <h2>DRAWING THE NEXT LOT…</h2>
+        <p>The committee is selecting the next player. Hold tight — the hammer drops soon.</p>
+      </div>
+    </div>
+  );
+}
+
+// Interactive profile cards for the recently closed lots (sold + unsold).
+function ResultCards({ results, teams }: { results: AuctionResultRow[]; teams: AuctionLiveState['teams'] }) {
+  const rows = [...results].reverse().slice(0, 6);
+  return (
+    <div className="la-results-stage">
+      <div className="la-results-head">
+        <div>
+          <span className="la-results-eyebrow">AUCTION LEDGER</span>
+          <h2>RECENTLY CLOSED LOTS</h2>
+        </div>
+        <span className="la-results-count">{results.length} CLOSED</span>
+      </div>
+      {rows.length === 0 ? (
+        <div className="la-results-empty">No lots closed yet — the first hammer drop lands here.</div>
+      ) : (
+        <div className="la-results-grid">
+          {rows.map((row) => {
+            const team = teams.find((t) => t.code === row.team_code);
+            const sold = row.status === 'sold';
+            const retainedFree = row.source === 'retained' && !row.sold_price;
+            return (
+              <div className={`la-rcard${sold ? ' sold' : ' unsold'}`} key={`${row.lot_order}-${row.player_name}`}>
+                <div className="la-rcard-av">
+                  {row.photo_url ? (
+                    <img src={row.photo_url} alt={row.player_name} />
+                  ) : (
+                    <span>{initials(row.player_name)}</span>
+                  )}
+                  {sold && team?.icon_url && <img className="la-rcard-team" src={resolveAsset(team.icon_url)} alt="" />}
+                </div>
+                <div className="la-rcard-body">
+                  <span className="la-rcard-type">{row.player_type}</span>
+                  <b className="la-rcard-name">{row.player_name}</b>
+                  <span className="la-rcard-meta">LOT #{row.lot_order}{row.source === 'retained' ? ' · ★ RETAINED' : ''}</span>
+                </div>
+                <div className="la-rcard-price">
+                  {sold ? (
+                    retainedFree ? (
+                      <span className="la-rcard-retained">RETAINED</span>
+                    ) : (
+                      <>
+                        <span className="la-rcard-team">{row.team_code ?? '—'}</span>
+                        <b>{formatInr(row.sold_price ?? 0)}</b>
+                      </>
+                    )
+                  ) : (
+                    <span className="la-rcard-unsold">UNSOLD</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -816,6 +870,14 @@ function createMockDemoState(): AuctionLiveState {
   };
 }
 
+const MemoTeamStrip = memo(TeamStrip);
+const MemoPlayer3DCard = memo(Player3DCard);
+const MemoCircularTimer = memo(CircularTimer);
+const MemoPlayerStats = memo(PlayerStats);
+const MemoTeamsPanel = memo(TeamsPanel);
+const MemoPricePanel = memo(PricePanel);
+const MemoResultCards = memo(ResultCards);
+
 export default function AuctionPage() {
   const { dark, toggleTheme } = useTheme();
   const [state, setState] = useState<AuctionLiveState | null>(null);
@@ -824,6 +886,7 @@ export default function AuctionPage() {
   const [soundOn, setSoundOn] = useState(true);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [activeDrawer, setActiveDrawer] = useState<'bids' | 'activity' | null>(null);
+  const lastSigRef = useRef<string>('');
 
   // Unlock Web Audio on first user gesture (browsers block audio until interaction)
   useEffect(() => {
@@ -838,29 +901,54 @@ export default function AuctionPage() {
     };
   }, []);
 
-  // Load backend live state
+  // Load backend live state: realtime-driven with a slow polling fallback.
   useEffect(() => {
     if (isDemoMode) return;
     let alive = true;
+    lastSigRef.current = '';
+
     const load = async () => {
-      const [next, schedule] = await Promise.all([fetchAuctionLiveState(), fetchAuctionSchedule()]);
+      const next = await fetchAuctionLiveState();
       if (!alive) return;
       setOnline(Boolean(next));
-      setScheduledAt(schedule);
-      if (next && next.session) {
+      if (!next) return;
+      const sig = liveStateSignature(next);
+      if (sig === lastSigRef.current) return;
+      lastSigRef.current = sig;
+      if (next.session) {
         setState(next);
       } else {
         // If server state has no active session, provide fallback demo preview
-        setState(next || createMockDemoState());
+        setState(createMockDemoState());
       }
     };
+
     void load();
-    const id = window.setInterval(() => void load(), 4000);
+    const unsubscribe = subscribeAuctionRealtime(() => void load());
+    const poll = window.setInterval(() => void load(), 15000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void load();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
       alive = false;
-      window.clearInterval(id);
+      unsubscribe();
+      window.clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [isDemoMode]);
+
+  // Schedule is fetched once (it rarely changes).
+  useEffect(() => {
+    let alive = true;
+    fetchAuctionSchedule().then((schedule) => {
+      if (alive) setScheduledAt(schedule);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Demo simulation mode toggle
   const toggleDemo = () => {
@@ -948,9 +1036,13 @@ export default function AuctionPage() {
   }, [state, live, soundOn]);
 
   return (
-    <div className={`app auction-page live-auction${dark ? ' dark' : ''}`} style={{ position: 'relative' }}>
-      <RetroGrid angle={60} />
-      <Particles quantity={45} color="#09c9d8" />
+    <div
+      className={`app auction-page live-auction${dark ? ' dark' : ''}`}
+      style={{ position: 'relative' }}
+      data-reduced={FX_ENABLED ? undefined : ''}
+    >
+      {FX_ENABLED && <RetroGrid angle={60} />}
+      {FX_ENABLED && <Particles quantity={45} color="#09c9d8" />}
 
       <SiteHeader dark={dark} onToggleTheme={toggleTheme} relative={!live} />
       <main className="la-main shell" style={{ position: 'relative', zIndex: 10 }}>
@@ -1056,59 +1148,35 @@ export default function AuctionPage() {
                 <>
                   <div className="la-live" style={{ height: '100%' }}>
                     <div className="lg lg-stats">
-                      <PlayerStats player={player} nextUp={state?.next_up ?? []} />
+                      <MemoPlayerStats player={player} />
                     </div>
                     <div className="lg lg-card">
-                      <Player3DCard key={player.player_id} player={player} />
+                      <MemoPlayer3DCard key={player.player_id} player={player} />
                     </div>
                     <div className="lg lg-ctop">
-                      <CircularTimer remaining={remaining} total={session.lot_timer_seconds} />
-                      <PricePanel player={player} bid={bid} />
+                      <MemoCircularTimer remaining={remaining} total={session.lot_timer_seconds} />
+                      <MemoPricePanel player={player} bid={bid} />
                     </div>
                     <div className="lg lg-teams" style={{ height: '100%' }}>
-                      <TeamsPanel
+                      <MemoTeamsPanel
                         teams={state?.teams ?? []}
                         bid={bid}
                         bidRows={state?.bids ?? []}
                         floor={bid?.amount ?? player.base_price ?? 0}
+                        squadSize={state?.squad_size ?? 11}
                       />
                     </div>
                   </div>
                 </>
               ) : (
-                <>
-                  <EmptyStage state={state} countdown={countdown} />
-                  <aside className="la-rail">
-                    <div className="la-panel la-results">
-                      <h3>RESULTS</h3>
-                      {results.length === 0 ? (
-                        <div className="la-panel-empty">Sold &amp; unsold players land here.</div>
-                      ) : (
-                        <ul>
-                          {results
-                            .slice(-12)
-                            .reverse()
-                            .map((row) => (
-                              <li key={`${row.lot_order}-${row.player_name}`} className={row.status}>
-                                <span className="la-res-name">{row.player_name}</span>
-                                <span className="la-res-price">
-                                  {row.status === 'sold'
-                                    ? `${row.team_code ?? '—'} · ${formatCompact(row.sold_price ?? 0)}${
-                                        row.source === 'retained' ? ' ★ RETAINED' : ''
-                                      }`
-                                    : 'UNSOLD'}
-                                </span>
-                              </li>
-                            ))}
-                        </ul>
-                      )}
-                    </div>
-                  </aside>
-                </>
+                <div className="la-between">
+                  <NextLotTeaser />
+                  <MemoResultCards results={results} teams={state?.teams ?? []} />
+                </div>
               )}
             </div>
 
-            {!(live && player) && <TeamStrip state={state} />}
+            {!(live && player) && <MemoTeamStrip state={state} />}
           </>
         )}
       </main>

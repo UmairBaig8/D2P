@@ -18,6 +18,7 @@ export const Particles: React.FC<ParticlesProps> = ({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -52,8 +53,6 @@ export const Particles: React.FC<ParticlesProps> = ({
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.globalAlpha = p.alpha;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 8;
         ctx.fill();
         ctx.restore();
       });

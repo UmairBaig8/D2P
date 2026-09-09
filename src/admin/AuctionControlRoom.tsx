@@ -241,7 +241,7 @@ export default function AuctionControlRoom() {
                 current={current}
                 onChanged={async () => refresh()}
               />
-              <TeamsPanel teams={teams} />
+              <TeamsPanel teams={teams} squadSize={data?.squad_size ?? 11} />
             </div>
           </div>
         )}
@@ -666,8 +666,8 @@ function StagePanel({ session, state, current, currentBid, players, teams, onCha
                 <SelectTrigger><SelectValue placeholder="Choose team" /></SelectTrigger>
                 <SelectContent>
                   {teams.map((team) => (
-                    <SelectItem key={team.team_id} value={team.team_id} disabled={team.squad >= 11 || team.budget - team.spent <= floor}>
-                      {team.code || team.name} · {formatCompact(team.budget - team.spent)} left · {team.squad}/11
+                    <SelectItem key={team.team_id} value={team.team_id} disabled={team.squad >= (state?.squad_size ?? 11) || team.budget - team.spent <= floor}>
+                      {team.code || team.name} · {formatCompact(team.budget - team.spent)} left · {team.squad}/{state?.squad_size ?? 11}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -897,7 +897,7 @@ function QueuePanel({ players, teams, current, onChanged }: {
 // Teams + purses
 // ---------------------------------------------------------------------------
 
-function TeamsPanel({ teams }: { teams: AuctionAdminState['teams'] }) {
+function TeamsPanel({ teams, squadSize }: { teams: AuctionAdminState['teams']; squadSize: number }) {
   return (
     <Card className="min-w-0">
       <CardHeader className="pb-2"><CardTitle className="text-base">TEAM PURSES</CardTitle></CardHeader>
@@ -918,7 +918,7 @@ function TeamsPanel({ teams }: { teams: AuctionAdminState['teams'] }) {
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} /></div>
                   <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
                     <span><b className="text-foreground">{formatCompact(balance)}</b> left</span>
-                    <span>{team.squad}/11</span>
+                    <span>{team.squad}/{squadSize}</span>
                   </div>
                 </div>
               );
