@@ -92,6 +92,7 @@ export type TeamRosterPlayer = {
   player_type: string;
   location: string;
   dpl_played: boolean;
+  self_rating: number | null;
   role: string;
 };
 
