@@ -1781,3 +1781,156 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 
 
 
+
+
+/* =====================================================================
+   PLAYER INTELLIGENCE CARD — refined stat tiles & identity header
+   ===================================================================== */
+.pi-head{gap:10px}
+.pi-avatar{width:clamp(40px,3vw,50px);height:clamp(40px,3vw,50px);border-radius:13px;display:grid;place-items:center;font:900 italic clamp(17px,1.4vw,22px)/1 'Barlow Condensed';color:#fff;background:linear-gradient(135deg,#2b3d58,#152238);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 22px -10px rgba(0,0,0,.65);flex-shrink:0}
+.pi-avatar--vet{background:conic-gradient(from 40deg,#ffd75e,#ff8a3c,#873cff,#09c9d8,#ffd75e);color:#081120;border-color:rgba(255,215,94,.6)}
+.pi-id{display:flex;flex-direction:column;gap:5px;min-width:0}
+.pi-id-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pi-lot{font:800 clamp(8px,.6vw,10px) Inter;letter-spacing:1.4px;color:#7db8ff;border:1px solid rgba(120,180,255,.3);border-radius:99px;padding:2px 8px}
+.pi-meta{display:flex;gap:6px;flex-wrap:wrap;padding-top:2px}
+.pi-chip{display:inline-flex;align-items:center;gap:5px;font:800 clamp(8px,.6vw,10px) Inter;letter-spacing:1.2px;color:#8fa8c4;background:rgba(120,160,255,.06);border:1px solid rgba(120,180,255,.16);border-radius:9px;padding:5px 9px}
+.pi-chip b{color:#eaf4ff;font-weight:900;font-variant-numeric:tabular-nums}
+.pi-ic--cyan{background:rgba(47,125,255,.14);border-color:rgba(47,125,255,.4);color:#9cc4ff}
+.pi-ic--green{background:rgba(22,199,154,.12);border-color:rgba(22,199,154,.35);color:#6fe3bd}
+.pi-ic--violet{background:rgba(135,60,255,.14);border-color:rgba(135,60,255,.4);color:#c7a8ff}
+.pi-ic--gold{background:rgba(255,215,94,.12);border-color:rgba(255,215,94,.35);color:#ffe08a}
+.pi-tbody b.val-violet{color:#c7a8ff}
+.pi-tbody b.val-gold{color:#ffd75e}
+.pi-queue{font-style:normal;font:800 clamp(8px,.6vw,10px) Inter;letter-spacing:1px;color:#09c9d8;border:1px solid rgba(9,201,216,.3);border-radius:99px;padding:3px 9px}
+
+/* =====================================================================
+   LIGHT THEME — auction broadcast surfaces & text
+   ===================================================================== */
+.auction-page.live-auction:not(.dark){background:radial-gradient(circle at 85% 8%,rgba(9,201,216,.16),transparent 34%),radial-gradient(circle at 8% 90%,rgba(135,60,255,.14),transparent 40%),linear-gradient(155deg,#f2f6fa 0%,#e6edf4 55%,#f2f6fa 100%)}
+.auction-page.live-auction:not(.dark)::after{background:linear-gradient(180deg,rgba(240,245,250,.78),rgba(240,245,250,.66) 45%,rgba(240,245,250,.82))}
+.auction-page.live-auction:not(.dark) footer{color:#5a6b7a;border-color:rgba(20,45,70,.12)}
+.auction-page.live-auction:not(.dark) .retro-grid-fade{background:radial-gradient(circle at 50% 30%,transparent 20%,#eef3f8 86%)}
+.auction-page.live-auction:not(.dark) .retro-grid-wrap{opacity:.16}
+
+/* header strip + controls */
+.auction-page.live-auction:not(.dark) .la-strip{color:#334556}
+.auction-page.live-auction:not(.dark) .la-top-progress-chip{background:rgba(255,255,255,.78);border-color:rgba(20,45,70,.14);color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .la-top-prog-bar{background:rgba(20,45,70,.14)}
+.auction-page.live-auction:not(.dark) .la-top-prog-sub{color:#6c8296}
+.auction-page.live-auction:not(.dark) .la-ctrl-btn{color:#334556;background:rgba(255,255,255,.72);border-color:rgba(20,45,70,.16)}
+.auction-page.live-auction:not(.dark) .la-ctrl-btn:hover{background:#fff;border-color:rgba(20,45,70,.3)}
+
+/* player intelligence card */
+.auction-page.live-auction:not(.dark) .pi-panel,
+.auction-page.live-auction:not(.dark) .la-pricep,
+.auction-page.live-auction:not(.dark) .la-panel,
+.auction-page.live-auction:not(.dark) .la-team{background:rgba(255,255,255,.76);border-color:rgba(20,45,70,.12);box-shadow:0 18px 44px -24px rgba(20,45,70,.25)}
+.auction-page.live-auction:not(.dark) .pi-sep{background:rgba(20,45,70,.12)}
+.auction-page.live-auction:not(.dark) .pi-sub{color:#5a6b7a}
+.auction-page.live-auction:not(.dark) .pi-lot{color:#2867ff;border-color:rgba(40,103,255,.3)}
+.auction-page.live-auction:not(.dark) .pi-tile{background:rgba(40,103,255,.05);border-color:rgba(40,103,255,.14)}
+.auction-page.live-auction:not(.dark) .pi-tbody span{color:#64748b}
+.auction-page.live-auction:not(.dark) .pi-tbody b{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .pi-chip{color:#5a6b7a;background:rgba(40,103,255,.05);border-color:rgba(40,103,255,.14)}
+.auction-page.live-auction:not(.dark) .pi-chip b{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .pi-next-info b{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .pi-next-info span,
+.auction-page.live-auction:not(.dark) .pi-next-empty{color:#6c8296}
+.auction-page.live-auction:not(.dark) .pi-next-row{background:rgba(40,103,255,.05);border-color:rgba(40,103,255,.12)}
+.auction-page.live-auction:not(.dark) .pi-avatar{border-color:rgba(20,45,70,.14)}
+
+/* team cards */
+.auction-page.live-auction:not(.dark) .la-tcard{background:rgba(255,255,255,.72);border-color:rgba(20,45,70,.14)}
+.auction-page.live-auction:not(.dark) .la-tcard:hover{border-color:rgba(9,201,216,.5)}
+.auction-page.live-auction:not(.dark) .la-tcard-code,
+.auction-page.live-auction:not(.dark) .la-tcard-id .la-tcard-code{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .la-tcard-name{color:#6c8296}
+.auction-page.live-auction:not(.dark) .la-tcard-line{color:#64748b}
+.auction-page.live-auction:not(.dark) .la-tcard-line b{color:#334556}
+.auction-page.live-auction:not(.dark) .la-tcard-status{color:#5a6b7a;background:rgba(20,45,70,.05);border-color:rgba(20,45,70,.14)}
+.auction-page.live-auction:not(.dark) .la-tcard-status.high{color:#8a5a00;background:rgba(255,196,46,.18);border-color:rgba(255,196,46,.6)}
+.auction-page.live-auction:not(.dark) .la-tcard-status.out{color:#8a97a5}
+.auction-page.live-auction:not(.dark) .la-pbar,
+.auction-page.live-auction:not(.dark) .la-sq-dot,
+.auction-page.live-auction:not(.dark) .la-tcard-bar,
+.auction-page.live-auction:not(.dark) .la-team-bar{background:rgba(20,45,70,.12)}
+.auction-page.live-auction:not(.dark) .la-sq-dot{border-color:rgba(20,45,70,.1)}
+
+/* price panel */
+.auction-page.live-auction:not(.dark) .la-hero-num{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .la-pricep.is-live .la-hero-num,
+.auction-page.live-auction:not(.dark) .la-hero.is-live .la-hero-num{color:#0b8f6c;text-shadow:none}
+.auction-page.live-auction:not(.dark) .la-hero-base{color:#6c8296;border-color:rgba(20,45,70,.16);background:rgba(20,45,70,.04)}
+.auction-page.live-auction:not(.dark) .la-hero-base b{color:#334556}
+.auction-page.live-auction:not(.dark) .la-hero-leader{color:#5a6b7a}
+.auction-page.live-auction:not(.dark) .la-leader-spotlight{background:rgba(22,199,154,.1);border-color:rgba(22,199,154,.3)}
+.auction-page.live-auction:not(.dark) .la-leader-name{color:#6c8296}
+.auction-page.live-auction:not(.dark) .la-leader-waiting{background:rgba(20,45,70,.05);border-color:rgba(20,45,70,.12);color:#6c8296}
+
+/* timer ring */
+.auction-page.live-auction:not(.dark) .la-ring-track{stroke:rgba(20,45,70,.14)}
+.auction-page.live-auction:not(.dark) .la-ring-num b{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .la-ring-num span{color:#6c8296}
+
+/* empty stage + countdown */
+.auction-page.live-auction:not(.dark) .la-stage-empty{background:rgba(255,255,255,.74);border-color:rgba(20,45,70,.16)}
+.auction-page.live-auction:not(.dark) .la-stage-empty h2{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .la-stage-empty p{color:#5a6b7a}
+.auction-page.live-auction:not(.dark) .la-countdown-cell{background:rgba(255,255,255,.82);border-color:rgba(20,45,70,.14);box-shadow:0 14px 30px -18px rgba(20,45,70,.3)}
+.auction-page.live-auction:not(.dark) .la-countdown-cell b{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .la-countdown p{color:#5a6b7a}
+
+/* results rail + purse strip */
+.auction-page.live-auction:not(.dark) .la-panel h3{color:#5a6b7a}
+.auction-page.live-auction:not(.dark) .la-panel li{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .la-panel-empty,
+.auction-page.live-auction:not(.dark) .la-purse-empty,
+.auction-page.live-auction:not(.dark) .la-team-squad,
+.auction-page.live-auction:not(.dark) .la-team-foot{color:#6c8296}
+.auction-page.live-auction:not(.dark) .la-results li .la-res-price{color:#0b8f6c}
+.auction-page.live-auction:not(.dark) .la-team-code{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .la-purse-note{color:#6c8296}
+
+/* drawer */
+.auction-page.live-auction:not(.dark) .la-drawer-left{background:linear-gradient(165deg,rgba(255,255,255,.99),rgba(240,245,250,.99));border-right-color:rgba(20,45,70,.14);box-shadow:20px 0 60px rgba(20,45,70,.25)}
+.auction-page.live-auction:not(.dark) .la-drawer-head{background:rgba(20,45,70,.03);border-bottom-color:rgba(20,45,70,.1)}
+.auction-page.live-auction:not(.dark) .la-drawer-tab{color:#5a6b7a}
+.auction-page.live-auction:not(.dark) .la-drawer-tab:hover{color:#0d1b2e}
+.auction-page.live-auction:not(.dark) .la-drawer-close{background:rgba(20,45,70,.06);border-color:rgba(20,45,70,.16);color:#334556}
+.auction-page.live-auction:not(.dark) .la-drawer-item{background:rgba(255,255,255,.8);border-color:rgba(20,45,70,.12);color:#334556}
+.auction-page.live-auction:not(.dark) .la-drawer-item time{color:#6c8296}
+
+/* ticker */
+.auction-page.live-auction:not(.dark) .la-ticker-wrap{background:rgba(255,255,255,.9);border-top-color:rgba(20,45,70,.12)}
+.auction-page.live-auction:not(.dark) .la-ticker-track{color:#334556}
+
+/* =====================================================================
+   AUCTION BOARD — final responsive composition
+   Keep bid controls compact, player central, and supporting data quiet.
+   ===================================================================== */
+.auction-page.live-auction:not(.dark) .particles-canvas{opacity:.28}
+.auction-page.live-auction:not(.dark) .la-pricep{box-shadow:0 14px 30px -22px rgba(20,45,70,.24)}
+.auction-page.live-auction:not(.dark) .la-tcard{box-shadow:none}
+
+/* Navigation needs its compact menu before board reaches tablet layout. */
+@media(max-width:1350px){
+  .auction-page.live-auction .topbar .nav{position:absolute;top:calc(100% + 8px);right:16px;display:none;flex-direction:column;align-items:stretch;gap:0;min-width:220px;padding:10px;border-radius:14px;background:#0b1420;border:1px solid #263747;box-shadow:0 18px 44px rgba(20,45,70,.22);z-index:60}
+  .auction-page.live-auction .topbar .nav.open{display:flex}
+  .auction-page.live-auction .topbar .nav a{padding:11px 14px;border-radius:9px;color:#fff}
+  .auction-page.live-auction .topbar .nav a:hover{background:#152333}
+  .auction-page.live-auction .topbar .nav-toggle{display:inline-flex}
+}
+
+/* 981–1380px: timer and bid share a compact control row above main board. */
+@media(min-width:981px) and (max-width:1380px){
+  .la-live{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) clamp(300px,28vw,420px);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"ctop ctop teams" "stats card teams";gap:12px 18px}
+  .lg-ctop{grid-area:ctop;display:grid;grid-template-columns:128px minmax(280px,360px);justify-content:center;align-items:center;gap:18px;padding:0}
+  .lg-ctop .la-pricep{grid-column:auto;grid-row:auto;width:100%;max-width:360px;padding:12px 16px 10px}
+  .lg-ctop .la-ring{width:128px;height:128px}
+  .lg-card .la-3d-wrap{width:min(100%,calc((100vh - 400px)*.72));min-width:0}
+}
+
+@media(max-width:980px){
+  .lg-card .la-3d-wrap{width:min(100%,320px);min-width:0}
+  .lg-ctop .la-pricep{max-width:360px}
+}

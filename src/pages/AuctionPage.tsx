@@ -331,24 +331,30 @@ function PlayerStats({
   const rating = Math.max(1, Math.min(5, player.self_rating || 0));
   const next = nextUp[0];
 
-  const tiles: { icon: string; label: string; value: string; highlight?: string }[] = [
+  const tiles: { icon: string; label: string; value: string; tone?: 'cyan' | 'green' | 'gold' | 'violet' }[] = [
     { icon: '🏏', label: 'BATTING', value: bat },
-    { icon: '🎯', label: 'BOWLING', value: bowl },
-    { icon: '◉', label: 'ROLE', value: player.player_type, highlight: 'cyan' },
-    { icon: '◉', label: 'AVAILABILITY', value: AVAIL2(player.availability), highlight: 'green' },
+    { icon: '🎯', label: 'BOWLING', value: bowl, tone: 'violet' },
+    { icon: '🎭', label: 'ROLE', value: player.player_type, tone: 'cyan' },
+    { icon: '⚡', label: 'AVAILABILITY', value: AVAIL2(player.availability), tone: 'green' },
   ];
 
   return (
     <>
       <section className="pi-panel pi-stats">
         <div className="pi-head">
-          <ShinyBadge variant={player.dpl_played ? 'gold' : 'cyan'}>
-            {player.dpl_played ? '★ DPL VET' : 'DPL ROOKIE'}
-          </ShinyBadge>
-          <span className="pi-sub">
-            {player.location}
-            {player.gender ? ` · ${player.gender}` : ''}
-          </span>
+          <span className={`pi-avatar${player.dpl_played ? ' pi-avatar--vet' : ''}`}>{initials(player.name)}</span>
+          <div className="pi-id">
+            <div className="pi-id-row">
+              <ShinyBadge variant={player.dpl_played ? 'gold' : 'cyan'}>
+                {player.dpl_played ? '★ DPL VET' : 'DPL ROOKIE'}
+              </ShinyBadge>
+              <span className="pi-lot">LOT #{player.lot_order}</span>
+            </div>
+            <span className="pi-sub">
+              {player.location}
+              {player.gender ? ` · ${player.gender}` : ''}
+            </span>
+          </div>
           <span className="pi-rating" aria-label={`${player.self_rating} out of 5`}>
             {'★'.repeat(rating)}
             <em>{player.self_rating}.0</em>
@@ -358,19 +364,24 @@ function PlayerStats({
         <div className="pi-grid">
           {tiles.map((tile) => (
             <div className="pi-tile" key={tile.label}>
-              <span className={`pi-ic${tile.highlight ? ` ${tile.highlight}` : ''}`}>{tile.icon}</span>
+              <span className={`pi-ic${tile.tone ? ` pi-ic--${tile.tone}` : ''}`}>{tile.icon}</span>
               <div className="pi-tbody">
                 <span>{tile.label}</span>
-                <b className={tile.highlight ? `val-${tile.highlight}` : ''}>{tile.value}</b>
+                <b className={tile.tone ? `val-${tile.tone}` : ''}>{tile.value}</b>
               </div>
             </div>
           ))}
+        </div>
+        <div className="pi-meta">
+          <span className="pi-chip">BASE <b>{formatCompact(player.base_price)}</b></span>
+          <span className="pi-chip">TYPE <b>{player.player_type}</b></span>
         </div>
       </section>
 
       <section className="pi-panel pi-nextcard">
         <div className="pi-next-head">
           <span>UP NEXT</span>
+          {next && <em className="pi-queue">LOT #{next.lot_order}</em>}
         </div>
         {next ? (
           <div className="pi-next-row">
@@ -381,9 +392,7 @@ function PlayerStats({
             )}
             <div className="pi-next-info">
               <b>{next.name}</b>
-              <span>
-                LOT #{next.lot_order} · {next.player_type}
-              </span>
+              <span>{next.player_type}</span>
             </div>
             <em>BASE {formatCompact(next.base_price)}</em>
           </div>
@@ -781,6 +790,19 @@ export default function AuctionPage() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [activeDrawer, setActiveDrawer] = useState<'bids' | 'activity' | null>(null);
 
+  // Unlock Web Audio on first user gesture (browsers block audio until interaction)
+  useEffect(() => {
+    const unlock = () => synth.unlock();
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+    window.addEventListener('touchstart', unlock);
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+  }, []);
+
   // Load backend live state
   useEffect(() => {
     if (isDemoMode) return;
@@ -952,7 +974,10 @@ export default function AuctionPage() {
                 <button
                   type="button"
                   className={`la-ctrl-btn${soundOn ? ' active' : ''}`}
-                  onClick={() => setSoundOn(!soundOn)}
+                  onClick={() => {
+                    synth.unlock();
+                    setSoundOn(!soundOn);
+                  }}
                   title="Toggle Audio Feedback SFX"
                 >
                   {soundOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
