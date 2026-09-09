@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/lib/useTheme';
 import SiteHeader from '@/components/SiteHeader';
 import { resolveAsset } from '@/lib/base';
@@ -25,90 +25,66 @@ function initials(name: string): string {
 // Web Audio API Sound Synthesizer (No external assets required)
 function createAudioSynth() {
   let ctx: AudioContext | null = null;
-  const init = () => {
+
+  const init = (): AudioContext | null => {
     if (!ctx) {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioCtx) ctx = new AudioCtx();
+      const AC =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (AC) ctx = new AC();
     }
     if (ctx && ctx.state === 'suspended') {
       void ctx.resume();
     }
+    return ctx;
   };
 
   const unlock = () => {
     init();
   };
 
-  const playTick = () => {
-    try {
-      init();
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(1100, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(550, ctx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.05);
-    } catch {
-      // Audio fail silent
-    }
+  // Single scheduling primitive — schedules against ctx.currentTime so a
+  // still-resuming context plays correctly once it transitions to 'running'.
+  const tone = (
+    freqStart: number,
+    freqEnd: number,
+    gainLevel: number,
+    duration: number,
+    type: OscillatorType = 'triangle',
+    delay = 0
+  ) => {
+    const c = init();
+    if (!c) return;
+    const t0 = c.currentTime + delay;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freqStart, t0);
+    if (freqEnd !== freqStart) osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqEnd), t0 + duration);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(gainLevel, t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    osc.connect(gain);
+    gain.connect(c.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.05);
   };
 
+  const playTick = () => tone(1050, 700, 0.22, 0.07, 'square');
   const playBid = () => {
-    try {
-      init();
-      if (!ctx) return;
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc1.type = 'triangle';
-      osc2.type = 'sine';
-      osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-      osc2.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
-
-      gain.gain.setValueAtTime(0.18, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-
-      osc1.connect(gain);
-      osc2.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc1.start();
-      osc2.start();
-      osc1.stop(ctx.currentTime + 0.35);
-      osc2.stop(ctx.currentTime + 0.35);
-    } catch {
-      // Audio fail silent
-    }
+    tone(523.25, 523.25, 0.2, 0.16, 'triangle');
+    tone(659.25, 659.25, 0.2, 0.24, 'sine', 0.02);
   };
-
   const playSold = () => {
-    try {
-      init();
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(220, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.2);
-      gain.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.6);
-    } catch {
-      // Audio fail silent
-    }
+    tone(220, 440, 0.26, 0.5, 'sine');
+    tone(660, 880, 0.18, 0.42, 'triangle', 0.1);
+  };
+  const playConfirm = () => {
+    tone(660, 660, 0.24, 0.12, 'sine');
+    tone(990, 990, 0.24, 0.18, 'sine', 0.09);
   };
 
-  return { unlock, playTick, playBid, playSold };
+  return { unlock, playTick, playBid, playSold, playConfirm };
 }
 
 const synth = createAudioSynth();
@@ -832,6 +808,8 @@ export default function AuctionPage() {
     if (!isDemoMode) {
       setIsDemoMode(true);
       setState(createMockDemoState());
+      synth.unlock();
+      synth.playConfirm();
     } else {
       setIsDemoMode(false);
     }
@@ -976,7 +954,9 @@ export default function AuctionPage() {
                   className={`la-ctrl-btn${soundOn ? ' active' : ''}`}
                   onClick={() => {
                     synth.unlock();
-                    setSoundOn(!soundOn);
+                    const next = !soundOn;
+                    setSoundOn(next);
+                    if (next) synth.playConfirm();
                   }}
                   title="Toggle Audio Feedback SFX"
                 >
