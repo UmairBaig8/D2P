@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronLeft, ChevronRight, Download, Loader2, Mail, MapPin, Pencil, Shield, Star, UserCheck, UserPlus, Users } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronLeft, ChevronRight, Crown, Download, Loader2, Mail, MapPin, Pencil, Shield, Star, UserCheck, UserPlus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ const BOWLING_ARMS = ['Right arm', 'Left arm', 'Not applicable'];
 const CRICKET_EXPERIENCES = ['New to cricket', 'Casual player', 'Club / college player', 'Experienced league player'];
 const JERSEY_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 const AVAILABILITIES = ['Available for all matches', 'Available for most matches', 'Need schedule confirmation'];
-const ROLES = ['player', 'vice_captain', 'captain'];
+const ROLES = ['owner', 'captain', 'vice_captain', 'player'];
 
 type AddPlayerForm = {
   name: string;
@@ -514,7 +514,8 @@ export default function PlayersTab({ preset: presetProp = null, onPresetApplied 
                   </Select>
                 </TableCell>
                 <TableCell>
-                  {player.role === 'captain' ? <Badge variant="secondary"><Shield /> CAPTAIN</Badge>
+                  {player.role === 'owner' ? <Badge variant="secondary"><Crown /> OWNER</Badge>
+                    : player.role === 'captain' ? <Badge variant="secondary"><Shield /> CAPTAIN</Badge>
                     : player.role === 'vice_captain' ? <Badge variant="secondary"><Shield /> VC</Badge>
                     : player.dpl_played ? <Badge variant="outline"><UserCheck /> VET</Badge>
                     : <span className="text-xs text-muted-foreground">ROOKIE</span>}
