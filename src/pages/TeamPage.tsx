@@ -70,8 +70,7 @@ export default function TeamPage() {
     <div className={`app ${dark ? 'dark ' : ''}teams-page team-detail-page-v2 ${team?.theme ?? ''}`}>
       <SiteHeader dark={dark} onToggleTheme={toggleTheme} relative />
       <main className="shell team-detail-shell">
-        <div className="team-detail-top"><Link className="team-back" to="/teams">← ALL TEAMS</Link>{team && <div className="team-detail-position"><span>TEAM {String(index + 1).padStart(2, '0')}</span><b>{team.name}</b><em>/ {String(teams.length).padStart(2, '0')}</em></div>}</div>
-        {teams.length > 0 && <nav className="team-detail-tabs" aria-label="Select team"><span className="team-detail-tabs-label">SWITCH TEAM</span>{teams.map((item, itemIndex) => <Link className={item.code === team?.code ? 'active' : ''} to={`/teams/${item.code}`} key={item.code} title={item.name}><img src={resolveAsset(item.icon_url)} alt="" /><span>{item.code}</span><small>{String(itemIndex + 1).padStart(2, '0')}</small></Link>)}</nav>}
+        {teams.length > 0 && <nav className="team-detail-tabs" aria-label="Select team"><Link className="team-back" to="/teams">← ALL TEAMS</Link>{team && <span className="team-detail-position"><span>TEAM {String(index + 1).padStart(2, '0')}</span><b>{team.name}</b><em>/ {teams.length}</em></span>}{teams.map((item, itemIndex) => <Link className={item.code === team?.code ? 'active' : ''} to={`/teams/${item.code}`} key={item.code} title={item.name}><img src={resolveAsset(item.icon_url)} alt="" /><span>{item.code}</span><small>{String(itemIndex + 1).padStart(2, '0')}</small></Link>)}</nav>}
         {!loaded ? <div className="teams-board-loading"><span /> Loading team…</div> : !team ? (
           <div className="teams-board-empty"><strong>TEAM NOT FOUND.</strong><Link className="team-back" to="/teams">← BACK TO TEAMS</Link></div>
         ) : (

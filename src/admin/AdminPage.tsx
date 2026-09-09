@@ -675,6 +675,7 @@ function TeamsTab() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={() => printRoster(team)}><Printer /> PRINT</Button>
                     <Button variant="outline" size="sm" onClick={() => setSquadTeam(team)}><Users2 /> SQUAD</Button>
                     <Button variant="outline" size="sm" onClick={() => setEditing(team)}><Pencil /> EDIT</Button>
                     <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setTeamToDelete(team)}><Trash2 /> DELETE</Button>
