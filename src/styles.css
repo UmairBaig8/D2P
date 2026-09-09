@@ -2149,3 +2149,7 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
   .team-detail-banner-copy{top:18px;bottom:auto;transform:none}
   .team-detail-logo{width:128px;height:176px;border-radius:16px}
 }
+
+
+/* ===== Spider chart: no tinted overlay box in dark theme ===== */
+.dark .team-detail-spider{background:transparent}
