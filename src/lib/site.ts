@@ -99,7 +99,16 @@ export type TeamRosterPlayer = {
 export async function fetchTeamRoster(teamCode: string): Promise<TeamRosterPlayer[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.rpc('team_roster', { team_code: teamCode });
-  return error ? [] : (data as TeamRosterPlayer[]);
+  if (error || !data) return [];
+  const roster = data as TeamRosterPlayer[];
+  // Older deployed team_roster() functions omit self_rating. Backfill by ID
+  // from players_list() until Supabase migration 20260909000001 is applied.
+  if (roster.some((player) => player.self_rating == null)) {
+    const { data: publicPlayers } = await supabase.rpc('players_list');
+    const ratingById = new Map((publicPlayers as PublicPlayer[] | null ?? []).map((player) => [player.id, player.self_rating]));
+    return roster.map((player) => ({ ...player, self_rating: player.self_rating ?? ratingById.get(player.id) ?? null }));
+  }
+  return roster;
 }
 
 export type PublicPlayer = {
