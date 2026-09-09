@@ -1,10 +1,9 @@
 -- Team leadership via normalized team_players.role.
--- Adds 'owner' to the role enum, enforces at-most-one owner/captain/vice_captain
--- per team, and derives names in teams_list() by joining registrations.
--- teams.owner / teams.captain text columns remain as fallback for owners/captains
--- who have not registered yet (coalesce fallback) and are deprecated over time.
+-- Adds 'owner'/'co_owner' to the role enum, enforces at-most-one per team,
+-- and derives names in teams_list() by joining registrations.
+-- Legacy teams.owner / teams.captain columns are cleared and ignored.
 
--- 1. Drop the existing role check constraint (auto-named by Postgres), re-add with 'owner'.
+-- 1. Drop the existing role check constraint, re-add with owner + co_owner.
 do $$
 declare
   c text;
@@ -26,17 +25,34 @@ end $$;
 
 alter table public.team_players
   add constraint team_players_role_check
-  check (role in ('owner', 'captain', 'vice_captain', 'player'));
+  check (role in ('owner', 'co_owner', 'captain', 'vice_captain', 'player'));
 
--- 2. At most one owner / captain / vice_captain per team.
+-- 2. Preserve memberships; keep earliest leadership row, demote duplicates.
+with ranked as (
+  select id, row_number() over (partition by team_id, role order by created_at, id) as position
+  from public.team_players
+  where role in ('owner', 'co_owner', 'captain', 'vice_captain')
+)
+update public.team_players tp
+set role = 'player'
+from ranked r
+where tp.id = r.id and r.position > 1;
+
+-- 3. At most one leader per role per team.
 create unique index if not exists team_players_one_owner
   on public.team_players (team_id) where role = 'owner';
+create unique index if not exists team_players_one_co_owner
+  on public.team_players (team_id) where role = 'co_owner';
 create unique index if not exists team_players_one_captain
   on public.team_players (team_id) where role = 'captain';
 create unique index if not exists team_players_one_vc
   on public.team_players (team_id) where role = 'vice_captain';
 
--- 3. teams_list(): derive owner/captain from team_players, fall back to text columns.
+-- 4. Clear legacy free-text leadership values. Leadership now requires a registered player.
+update public.teams set owner = null, captain = null;
+
+-- 5. teams_list(): derive owner/co_owner/captain only from registered team players.
+drop function if exists public.teams_list();
 create or replace function public.teams_list()
 returns table (
   id uuid,
@@ -45,6 +61,7 @@ returns table (
   icon_url text,
   theme text,
   owner text,
+  co_owner text,
   captain text,
   champion boolean,
   player_count bigint,
@@ -56,18 +73,15 @@ set search_path = public
 as $$
   select
     t.id, t.name, t.code, t.icon_url, t.theme,
-    coalesce(
-      (select r.name from public.team_players tp
-       join public.registrations r on r.id = tp.player_id
-       where tp.team_id = t.id and tp.role = 'owner'),
-      t.owner
-    ) as owner,
-    coalesce(
-      (select r.name from public.team_players tp
-       join public.registrations r on r.id = tp.player_id
-       where tp.team_id = t.id and tp.role = 'captain'),
-      t.captain
-    ) as captain,
+    (select r.name from public.team_players tp
+     join public.registrations r on r.id = tp.player_id
+     where tp.team_id = t.id and tp.role = 'owner') as owner,
+    (select r.name from public.team_players tp
+     join public.registrations r on r.id = tp.player_id
+     where tp.team_id = t.id and tp.role = 'co_owner') as co_owner,
+    (select r.name from public.team_players tp
+     join public.registrations r on r.id = tp.player_id
+     where tp.team_id = t.id and tp.role = 'captain') as captain,
     t.champion,
     (select count(*) from public.team_players tp where tp.team_id = t.id) as player_count,
     t.sort_order
@@ -78,7 +92,8 @@ $$;
 revoke all on function public.teams_list() from public;
 grant execute on function public.teams_list() to anon, authenticated;
 
--- 4. team_roster(): order owner first.
+-- 6. team_roster(): order owner/co_owner first.
+drop function if exists public.team_roster(text);
 create or replace function public.team_roster(team_code text)
 returns table (
   id uuid,
@@ -101,9 +116,10 @@ as $$
   where t.code = team_code
   order by case tp.role
     when 'owner' then 0
-    when 'captain' then 1
-    when 'vice_captain' then 2
-    else 3 end, r.created_at;
+    when 'co_owner' then 1
+    when 'captain' then 2
+    when 'vice_captain' then 3
+    else 4 end, r.created_at;
 $$;
 
 revoke all on function public.team_roster(text) from public;

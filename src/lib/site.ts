@@ -72,6 +72,7 @@ export type TeamRow = {
   icon_url: string;
   theme: string;
   owner: string | null;
+  co_owner: string | null;
   captain: string | null;
   champion: boolean;
   player_count: number;
@@ -262,8 +263,6 @@ export async function adminUpsertTeam(team: {
   code: string;
   icon_url: string;
   theme: string;
-  owner: string;
-  captain: string;
   champion: boolean;
   sort_order: number;
 }): Promise<{ error?: string }> {

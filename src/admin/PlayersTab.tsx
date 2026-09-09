@@ -21,7 +21,7 @@ const BOWLING_ARMS = ['Right arm', 'Left arm', 'Not applicable'];
 const CRICKET_EXPERIENCES = ['New to cricket', 'Casual player', 'Club / college player', 'Experienced league player'];
 const JERSEY_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 const AVAILABILITIES = ['Available for all matches', 'Available for most matches', 'Need schedule confirmation'];
-const ROLES = ['owner', 'captain', 'vice_captain', 'player'];
+const ROLES = ['owner', 'co_owner', 'captain', 'vice_captain', 'player'];
 
 type AddPlayerForm = {
   name: string;
@@ -515,6 +515,7 @@ export default function PlayersTab({ preset: presetProp = null, onPresetApplied 
                 </TableCell>
                 <TableCell>
                   {player.role === 'owner' ? <Badge variant="secondary"><Crown /> OWNER</Badge>
+                    : player.role === 'co_owner' ? <Badge variant="secondary"><Crown /> CO-OWNER</Badge>
                     : player.role === 'captain' ? <Badge variant="secondary"><Shield /> CAPTAIN</Badge>
                     : player.role === 'vice_captain' ? <Badge variant="secondary"><Shield /> VC</Badge>
                     : player.dpl_played ? <Badge variant="outline"><UserCheck /> VET</Badge>

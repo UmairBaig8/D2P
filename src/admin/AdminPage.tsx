@@ -533,8 +533,6 @@ function TeamsTab() {
       code: (editing.code ?? '').trim().toUpperCase(),
       icon_url: editing.icon_url.trim(),
       theme: editing.theme.trim(),
-      owner: editing.owner ?? '',
-      captain: editing.captain ?? '',
       champion: editing.champion,
       sort_order: editing.sort_order,
     };
@@ -567,8 +565,8 @@ function TeamsTab() {
     const members = players
       .filter((player) => player.team_id === team.id)
       .sort((a, b) => {
-        const rank = { captain: 0, vice_captain: 1, player: 2 };
-        return (rank[a.role as keyof typeof rank] ?? 2) - (rank[b.role as keyof typeof rank] ?? 2) || a.name.localeCompare(b.name);
+        const rank = { owner: 0, co_owner: 1, captain: 2, vice_captain: 3, player: 4 };
+        return (rank[a.role as keyof typeof rank] ?? 4) - (rank[b.role as keyof typeof rank] ?? 4) || a.name.localeCompare(b.name);
       });
     const win = window.open('', '_blank', 'width=780,height=920');
     if (!win) {
@@ -577,7 +575,7 @@ function TeamsTab() {
     }
     const rows = members.length
       ? members.map((player, index) => {
-          const role = player.role === 'captain' ? 'CAPTAIN' : player.role === 'vice_captain' ? 'VICE CAPTAIN' : 'PLAYER';
+          const role = player.role === 'owner' ? 'OWNER' : player.role === 'co_owner' ? 'CO-OWNER' : player.role === 'captain' ? 'CAPTAIN' : player.role === 'vice_captain' ? 'VICE CAPTAIN' : 'PLAYER';
           return `<tr>
             <td class="num">${index + 1}</td>
             <td><strong>${player.name}</strong><br/><span class="sub">${player.location || '—'} · ${player.player_type || '—'}</span></td>
@@ -654,7 +652,15 @@ function TeamsTab() {
                 </TableCell>
                 <TableCell className="font-medium">{team.name}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {[team.code, team.theme, team.owner && `owner: ${team.owner}`, team.captain && `captain: ${team.captain}`, `${players.filter((player) => player.team_id === team.id).length} players`].filter(Boolean).join(' · ') || '—'}
+                  {(() => {
+                    const members = players.filter((player) => player.team_id === team.id);
+                    const rank = { owner: 0, co_owner: 1, captain: 2, vice_captain: 3 };
+                    const leaders = members
+                      .filter((player) => rank[player.role as keyof typeof rank] !== undefined)
+                      .sort((a, b) => (rank[a.role as keyof typeof rank] ?? 9) - (rank[b.role as keyof typeof rank] ?? 9))
+                      .map((player) => `${player.role.replace('_', '-')}: ${player.name}`);
+                    return [team.code, team.theme, ...leaders, `${members.length} players`].join(' · ') || '—';
+                  })()}
                 </TableCell>
                 <TableCell>
                   {team.champion ? <Badge variant="default" className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/15"><Crown /> CHAMPION</Badge> : <span className="text-xs text-muted-foreground">—</span>}
@@ -714,14 +720,6 @@ function TeamsTab() {
                   <Label htmlFor="team-order">SORT ORDER</Label>
                   <Input id="team-order" type="number" value={editing.sort_order} onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })} />
                 </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="team-owner">OWNER</Label>
-                  <Input id="team-owner" value={editing.owner ?? ''} onChange={(e) => setEditing({ ...editing, owner: e.target.value })} />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="team-captain">CAPTAIN</Label>
-                  <Input id="team-captain" value={editing.captain ?? ''} onChange={(e) => setEditing({ ...editing, captain: e.target.value })} />
-                </div>
               </div>
               <label className="flex items-center gap-2 text-sm font-medium">
                 <input type="checkbox" className="size-4 rounded border-input accent-[var(--primary)]" checked={editing.champion} onChange={(e) => setEditing({ ...editing, champion: e.target.checked })} />
@@ -763,8 +761,8 @@ function TeamsTab() {
               const members = players
                 .filter((player) => player.team_id === squadTeam?.id)
                 .sort((a, b) => {
-                  const rank = { captain: 0, vice_captain: 1, player: 2 };
-                  return (rank[a.role as keyof typeof rank] ?? 2) - (rank[b.role as keyof typeof rank] ?? 2) || a.name.localeCompare(b.name);
+                  const rank = { owner: 0, co_owner: 1, captain: 2, vice_captain: 3, player: 4 };
+                  return (rank[a.role as keyof typeof rank] ?? 4) - (rank[b.role as keyof typeof rank] ?? 4) || a.name.localeCompare(b.name);
                 });
               if (!members.length) {
                 return <p className="py-8 text-center text-sm text-muted-foreground">No players assigned yet.</p>;
@@ -778,7 +776,11 @@ function TeamsTab() {
                     <div className="truncate text-sm font-semibold">{player.name}</div>
                     <div className="truncate text-xs text-muted-foreground">{player.location} · {player.player_type}</div>
                   </div>
-                  {player.role === 'captain'
+                  {player.role === 'owner'
+                    ? <Badge variant="secondary"><Crown /> OWNER</Badge>
+                    : player.role === 'co_owner'
+                    ? <Badge variant="secondary"><Crown /> CO-OWNER</Badge>
+                    : player.role === 'captain'
                     ? <Badge variant="secondary"><Shield /> CAPTAIN</Badge>
                     : player.role === 'vice_captain'
                       ? <Badge variant="secondary"><Shield /> VC</Badge>

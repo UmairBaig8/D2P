@@ -37,6 +37,7 @@ export default function TeamsPage() {
                 <div className="team-name">{t.name}</div>
                 <div className="team-leads">
                   <div className="team-lead"><span>OWNER</span><b>{t.owner || 'TBD'}</b></div>
+                  {t.co_owner && <div className="team-lead"><span>CO-OWNER</span><b>{t.co_owner}</b></div>}
                   <div className="team-lead"><span>CAPTAIN</span><b>{t.captain || 'TBD'}</b></div>
                 </div>
                 <div className="team-players"><span className="team-count">{t.player_count} PLAYERS</span><span className="team-view">VIEW TEAM</span></div>

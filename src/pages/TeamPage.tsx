@@ -55,6 +55,7 @@ export default function TeamPage() {
       theme={team.theme}
       count={team.player_count}
       owner={team.owner || 'TBD'}
+      coOwner={team.co_owner || ''}
       captain={team.captain || 'TBD'}
       champion={team.champion}
       players={players}
@@ -71,6 +72,7 @@ function TeamDetail({
   theme,
   count,
   owner,
+  coOwner,
   captain,
   champion,
   players,
@@ -83,6 +85,7 @@ function TeamDetail({
   theme: string;
   count: number;
   owner: string;
+  coOwner: string;
   captain: string;
   champion: boolean;
   players: TeamRosterPlayer[];
@@ -111,6 +114,7 @@ function TeamDetail({
             <p className="teams-desc">{count} players locked in. One goal: lift the DPL 2026 trophy.</p>
             <div className="team-leads">
               <div className="team-lead"><span>OWNER</span><b>{owner}</b></div>
+              {coOwner && <div className="team-lead"><span>CO-OWNER</span><b>{coOwner}</b></div>}
               <div className="team-lead"><span>CAPTAIN</span><b>{captain}</b></div>
             </div>
           </div>
@@ -120,7 +124,7 @@ function TeamDetail({
             <article className={`player-card ${theme}`} key={p.id}>
               <div className="player-photo"><span>{p.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</span></div>
               <h3>{p.name}</h3>
-              <span className="player-role">{p.role}{p.role === 'captain' ? ' · CAPTAIN' : ''}</span>
+              <span className="player-role">{p.role === 'owner' ? 'OWNER' : p.role === 'co_owner' ? 'CO-OWNER' : p.role === 'captain' ? 'CAPTAIN' : p.role === 'vice_captain' ? 'VICE CAPTAIN' : 'PLAYER'}</span>
               <div className="team-player-extra">
                 <span className="player-squad">{p.location}</span>
                 <span className={`player-dpl${p.dpl_played ? '' : ' no'}`}>{p.dpl_played ? 'DPL VET' : 'ROOKIE'}</span>
