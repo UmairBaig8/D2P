@@ -658,7 +658,7 @@ function TeamsTab() {
                     const leaders = members
                       .filter((player) => rank[player.role as keyof typeof rank] !== undefined)
                       .sort((a, b) => (rank[a.role as keyof typeof rank] ?? 9) - (rank[b.role as keyof typeof rank] ?? 9))
-                      .map((player) => `${player.role.replace('_', '-')}: ${player.name}`);
+                      .map((player) => `${(player.role ?? 'player').replace('_', '-')}: ${player.name}`);
                     return [team.code, team.theme, ...leaders, `${members.length} players`].join(' · ') || '—';
                   })()}
                 </TableCell>
