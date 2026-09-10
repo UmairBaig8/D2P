@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 export default function AdminTopbar({ dark, onToggleTheme, onLogout, showLogout = true, auctionPage = false }: { dark: boolean; onToggleTheme: (dark: boolean) => void; onLogout: () => void; showLogout?: boolean; auctionPage?: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-card/80 backdrop-blur">
-      <div className="shell flex h-14 items-center justify-between gap-4">
+      <div className={`${auctionPage ? 'w-full px-4 sm:px-6' : 'shell'} flex h-14 items-center justify-between gap-4`}>
         <a className="flex items-center gap-2.5" href={withBase('/')} aria-label="D2P home">
           <img className="h-9 w-9 rounded-lg object-cover" src={withBase('/logo-96.png')} alt="D2P logo" />
           <span className="font-display text-xl font-black italic tracking-wide leading-none">

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Hammer, Play, Flag, RotateCcw, Undo2, TimerReset, ExternalLink, Gavel } from 'lucide-react';
+import { Loader2, Hammer, Play, Flag, RotateCcw, Undo2, TimerReset, ExternalLink, Gavel, Pencil, Trash2, Search, Shuffle } from 'lucide-react';
 import AdminTopbar from '@/admin/AdminTopbar';
 import BorderGlow from '@/components/BorderGlow';
 import { withBase, resolveAsset } from '@/lib/base';
@@ -39,14 +39,21 @@ import {
   auctionUnsold,
   auctionUndo,
   auctionExtend,
+  auctionEditResult,
+  auctionDeleteLot,
   formatCompact,
   formatInr,
+  incrementFor,
+  bidLadder,
+  DEFAULT_INCREMENT_TIERS,
   type AuctionAdminState,
   type AuctionAdminLot,
+  type AuctionIncrementTiers,
+  type AuctionSettings,
 } from '@/lib/auction';
 
 const DEFAULT_PURSE = 5000000;
-const DEFAULT_INCREMENT = 100000;
+const DEFAULT_INCREMENT = 10;
 const DEFAULT_TIMER = 60;
 
 function useCountdown(endAt: string | null | undefined): number | null {
@@ -105,6 +112,7 @@ export default function AuctionControlRoom() {
   // ---- live data ----
   const [data, setData] = useState<AuctionAdminState | null>(null);
   const [dataError, setDataError] = useState(false);
+  const [settings, setSettings] = useState<AuctionSettings | null>(null);
 
   useEffect(() => {
     if (phase !== 'admin') return;
@@ -116,6 +124,7 @@ export default function AuctionControlRoom() {
       if (next) setData(next);
     };
     void tick();
+    void fetchAuctionSettings().then((s) => { if (alive && s) setSettings(s); });
     const id = window.setInterval(() => void tick(), 3000);
     return () => { alive = false; window.clearInterval(id); };
   }, [phase]);
@@ -124,6 +133,15 @@ export default function AuctionControlRoom() {
     const next = await fetchAdminAuctionState();
     if (next) { setDataError(false); setData(next); }
   }, []);
+
+  const reloadSettings = useCallback(async () => {
+    const next = await fetchAuctionSettings();
+    if (next) setSettings(next);
+  }, []);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([refresh(), reloadSettings()]);
+  }, [refresh, reloadSettings]);
 
   if (phase === 'checking' || phase === 'anon' || phase === 'denied') {
     return (
@@ -146,6 +164,9 @@ export default function AuctionControlRoom() {
   const teams = data?.teams ?? [];
   const current = data?.current_player ?? null;
   const currentBid = data?.current_bid ?? null;
+  const tiers = settings?.tiers ?? DEFAULT_INCREMENT_TIERS;
+  const femaleQuota = settings?.female_quota ?? 2;
+  const floor = Math.max(currentBid?.amount ?? 0, current?.base_price ?? 0, 0);
 
   if (data === null) {
     return (
@@ -185,22 +206,22 @@ export default function AuctionControlRoom() {
       </div>
       <Toaster theme={dark ? 'dark' : 'light'} position="bottom-center" richColors />
       <AdminTopbar dark={dark} onToggleTheme={toggleTheme} onLogout={handleLogout} auctionPage />
-      <main className="shell px-4 py-5 sm:px-6">
+      <main className="w-full px-4 py-5 sm:px-6">
         <ControlHeader
           session={session}
           dataError={dataError}
-          onChanged={refresh}
+          onChanged={refreshAll}
           onStart={async (args) => {
             const res = await auctionStartSession(args);
             if (res.error) { toast.error(res.error); return; }
             toast.success('Auction session started.');
-            await refresh();
+            await refreshAll();
           }}
           onUpdate={async (args) => {
             const res = await auctionUpdateSession({ session: session!.id, ...args });
             if (res.error) { toast.error(res.error); return; }
             toast.success('Session updated.');
-            await refresh();
+            await refreshAll();
           }}
         />
 
@@ -218,30 +239,44 @@ export default function AuctionControlRoom() {
                   const res = await auctionStartSession(args);
                   if (res.error) { toast.error(res.error); return; }
                   toast.success('Auction session started.');
-                  await refresh();
+                  await refreshAll();
                 }}
               />
             </CardContent>
           </Card>
         ) : (
-          <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(340px,430px)_1fr]">
-            <StagePanel
-              session={session}
-              state={data}
-              current={current}
-              currentBid={currentBid}
-              players={players}
-              teams={teams}
-              onChanged={async () => refresh()}
-            />
-            <div className="grid min-w-0 gap-4">
+          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(190px,15%)_minmax(0,1fr)_minmax(250px,21%)]">
+            <div className="order-2 min-w-0 lg:order-1">
+              <TeamsRail
+                teams={teams}
+                players={players}
+                squadSize={data?.squad_size ?? 11}
+                femaleQuota={femaleQuota}
+                currentBid={currentBid}
+                floor={floor}
+              />
+            </div>
+            <div className="order-1 min-w-0 lg:order-2">
+              <StagePanel
+                session={session}
+                state={data}
+                current={current}
+                currentBid={currentBid}
+                players={players}
+                teams={teams}
+                tiers={tiers}
+                femaleQuota={femaleQuota}
+                onChanged={refreshAll}
+              />
+            </div>
+            <div className="order-3 min-w-0">
               <QueuePanel
                 players={players}
                 teams={teams}
                 current={current}
-                onChanged={async () => refresh()}
+                defaultBase={settings?.default_base ?? 0}
+                onChanged={refreshAll}
               />
-              <TeamsPanel teams={teams} squadSize={data?.squad_size ?? 11} />
             </div>
           </div>
         )}
@@ -526,35 +561,65 @@ function ControlHeader({ session, dataError, onStart, onUpdate, onChanged }: {
 // Stage panel: run the current lot
 // ---------------------------------------------------------------------------
 
-function StagePanel({ session, state, current, currentBid, players, teams, onChanged }: {
+function StagePanel({ session, state, current, currentBid, players, teams, tiers, femaleQuota, onChanged }: {
   session: NonNullable<AuctionAdminState['session']>;
   state: AuctionAdminState | null;
   current: AuctionAdminState['current_player'];
   currentBid: AuctionAdminState['current_bid'];
   players: AuctionAdminLot[];
   teams: AuctionAdminState['teams'];
+  tiers: AuctionIncrementTiers;
+  femaleQuota: number;
   onChanged: () => Promise<void>;
 }) {
   const live = session.status === 'live';
-  const [bidTeam, setBidTeam] = useState<string>('');
   const [amount, setAmount] = useState('');
   const [nextPlayerId, setNextPlayerId] = useState<string>('');
   const [base, setBase] = useState('');
   const [busy, setBusy] = useState(false);
+  const [autoNext, setAutoNext] = useState<boolean>(() => {
+    try { const v = window.localStorage.getItem('dpl.auction.autoNext'); return v === null ? true : v === '1'; } catch { return true; }
+  });
+  const [timeUp, setTimeUp] = useState(false);
+  const [drawing, setDrawing] = useState(false);
+  const [drawName, setDrawName] = useState('');
+  const drawTimers = useRef<number[]>([]);
+  const promptedRef = useRef<string | null>(null);
   const remaining = useCountdown(current?.timer_ends_at);
+
+  useEffect(() => {
+    try { window.localStorage.setItem('dpl.auction.autoNext', autoNext ? '1' : '0'); } catch { /* ignore */ }
+  }, [autoNext]);
 
   const poolPlayers = useMemo(() => players.filter((p) => p.status === 'pool').sort((a, b) => a.lot_order - b.lot_order), [players]);
   const floor = Math.max(currentBid?.amount ?? 0, current?.base_price ?? 0, 0);
-  const inc = session.increment || DEFAULT_INCREMENT;
+  const ladder = useMemo(() => bidLadder(floor, tiers, 8), [floor, tiers]);
+  const minNext = ladder[0] ?? floor + incrementFor(floor, tiers);
+  const staged = Number(amount) || minNext;
+  const squadSize = state?.squad_size ?? 11;
+  const leaderId = currentBid?.team_id ?? null;
+  const leader = teams.find((t) => t.team_id === leaderId) ?? null;
+  const currentIsFemale = current?.gender === 'Female';
 
-  useEffect(() => {
-    if (current) {
-      setBidTeam((prev) => prev && teams.some((t) => t.team_id === prev) ? prev : (teams[0]?.team_id ?? ''));
+  // Female players already bought per team (retained + auction).
+  const femaleByTeam = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const p of players) {
+      if (p.status === 'sold' && p.gender === 'Female' && p.sold_to_team_id) {
+        map[p.sold_to_team_id] = (map[p.sold_to_team_id] ?? 0) + 1;
+      }
     }
-  }, [current, teams]);
+    return map;
+  }, [players]);
 
-  const selectedTeam = teams.find((t) => t.team_id === bidTeam);
-  const selectedTeamBalance = (selectedTeam?.budget ?? 0) - (selectedTeam?.spent ?? 0);
+  const femalesOf = (team: AuctionAdminState['teams'][number]) => femaleByTeam[team.team_id] ?? 0;
+  const femaleNeed = (team: AuctionAdminState['teams'][number]) => Math.max(0, femaleQuota - femalesOf(team));
+  // Buying a male uses a slot; must keep enough slots open to still reach the female quota.
+  const quotaBlocksMale = (team: AuctionAdminState['teams'][number]) =>
+    !currentIsFemale && (squadSize - team.squad - 1) < femaleNeed(team);
+
+  // Keep the staged amount one step ahead of the floor as bidding progresses.
+  useEffect(() => { setAmount(String(minNext)); }, [minNext]);
 
   const act = async (label: string, fn: () => Promise<{ error?: string }>) => {
     setBusy(true);
@@ -566,43 +631,74 @@ function StagePanel({ session, state, current, currentBid, players, teams, onCha
     return true;
   };
 
-  const quickAmounts = useMemo(() => {
-    const next = floor + inc;
-    return [next, next + inc, next + inc * 2];
-  }, [floor, inc]);
+  const teamBalance = (team: AuctionAdminState['teams'][number]) => team.budget - team.spent;
+  const canTeamBid = (team: AuctionAdminState['teams'][number]) =>
+    Boolean(live && current) && team.squad < squadSize && teamBalance(team) > floor && !quotaBlocksMale(team);
+  // How many teams can actually afford (and are allowed to) bid a given amount.
+  const affordableCount = (value: number) =>
+    teams.filter((t) => teamBalance(t) >= value && t.squad < squadSize && (currentIsFemale || (squadSize - t.squad - 1) >= femaleNeed(t))).length;
 
-  const handleOpenNext = async () => {
-    const player = poolPlayers.find((p) => p.player_id === nextPlayerId) ?? poolPlayers[0];
-    if (!player) { toast.error('No pool players left.'); return; }
-    const baseNum = Number(base);
-    if (base && !Number.isNaN(baseNum)) {
-      const ok = await act('Base saved', () => auctionSetBase(player.player_id, baseNum));
-      if (!ok) return;
-    }
-    await act('Lot on the stage', () => auctionOpenLot(player.player_id));
+  const bidWith = async (team: AuctionAdminState['teams'][number], value: string | number) => {
+    if (!live || !current) { toast.error('No lot on the stage.'); return; }
+    const amt = Number(value) || minNext;
+    if (amt <= floor) { toast.error(`Bid must exceed ${formatInr(floor)}.`); return; }
+    if (team.squad >= squadSize) { toast.error(`${team.code} squad is full (${squadSize}).`); return; }
+    if (quotaBlocksMale(team)) { toast.error(`${team.code} must still sign ${femaleNeed(team)} female player(s).`); return; }
+    if (amt > teamBalance(team)) { toast.error(`Budget exceeded — ${formatCompact(teamBalance(team))} left.`); return; }
+    await act(`${team.code} bids ${formatInr(amt)}`, () => auctionBid(team.team_id, amt));
   };
 
-  const handleBid = async () => {
-    if (!bidTeam) { toast.error('Pick a team first.'); return; }
-    const amt = Number(amount);
-    if (!amt || amt <= floor) { toast.error(`Bid must exceed ${formatInr(floor)}.`); return; }
-    if (amt > selectedTeamBalance) { toast.error(`Budget exceeded — ${formatCompact(selectedTeamBalance)} left.`); return; }
-    await act('Bid placed', () => auctionBid(bidTeam, amt));
+  const openLotDirect = async (player: AuctionAdminLot) => {
+    await act(`On stage: ${player.name}`, () => auctionOpenLot(player.player_id));
   };
+
+  const pickRandom = () => (poolPlayers.length ? poolPlayers[Math.floor(Math.random() * poolPlayers.length)] : null);
+
+  const clearDrawTimers = () => {
+    drawTimers.current.forEach((t) => { window.clearInterval(t); window.clearTimeout(t); });
+    drawTimers.current = [];
+  };
+
+  // Lucky-dip: shuffle names for suspense, then open the drawn lot.
+  const startDraw = () => {
+    if (!live) { toast.error('Session is not live.'); return; }
+    if (poolPlayers.length === 0) { toast.error('No pool players left.'); return; }
+    const pick = pickRandom()!;
+    clearDrawTimers();
+    setDrawName(poolPlayers[Math.floor(Math.random() * poolPlayers.length)].name);
+    setDrawing(true);
+    const shuffle = window.setInterval(() => {
+      const p = poolPlayers[Math.floor(Math.random() * poolPlayers.length)];
+      setDrawName(p.name);
+    }, 70);
+    drawTimers.current.push(shuffle);
+    drawTimers.current.push(window.setTimeout(() => {
+      window.clearInterval(shuffle);
+      setDrawName(pick.name);
+    }, 1400));
+    drawTimers.current.push(window.setTimeout(() => {
+      setDrawing(false);
+      void openLotDirect(pick);
+    }, 2050));
+  };
+
+  useEffect(() => () => {
+    drawTimers.current.forEach((t) => { window.clearInterval(t); window.clearTimeout(t); });
+  }, []);
 
   const handleSell = async () => {
-    if (!current) return;
-    const price = Number(amount) || floor;
-    const teamId = bidTeam;
-    if (!teamId) { toast.error('Pick a team.'); return; }
-    if (!window.confirm(`Sell ${current.name} to ${teams.find((t) => t.team_id === teamId)?.name ?? 'team'} for ${formatInr(price)}?`)) return;
-    await act('Sold!', () => auctionSell(current.player_id, teamId, price));
+    if (!current || !leader) { toast.error('No bid to sell to.'); return; }
+    if (quotaBlocksMale(leader)) { toast.error(`${leader.code} must still sign ${femaleNeed(leader)} female player(s).`); return; }
+    const upcoming = pickRandom();
+    const ok = await act(`Sold to ${leader.code}`, () => auctionSell(current.player_id, leader.team_id, floor));
+    if (ok && autoNext && upcoming) await openLotDirect(upcoming);
   };
 
   const handleUnsold = async () => {
     if (!current) return;
-    if (!window.confirm(`Mark ${current.name} UNSOLD?`)) return;
-    await act('Marked unsold', () => auctionUnsold(current.player_id));
+    const upcoming = pickRandom();
+    const ok = await act('Marked unsold', () => auctionUnsold(current.player_id));
+    if (ok && autoNext && upcoming) await openLotDirect(upcoming);
   };
 
   const handleExtend = async (seconds: number) => {
@@ -619,102 +715,235 @@ function StagePanel({ session, state, current, currentBid, players, teams, onCha
     await act('Undone', () => auctionUndo(last.player_id));
   };
 
+  const handleOpenNext = async () => {
+    const player = poolPlayers.find((p) => p.player_id === nextPlayerId) ?? poolPlayers[0];
+    if (!player) { toast.error('No pool players left.'); return; }
+    const baseNum = Number(base);
+    if (base && !Number.isNaN(baseNum)) {
+      const ok = await act('Base saved', () => auctionSetBase(player.player_id, baseNum));
+      if (!ok) return;
+    }
+    await act('Lot on the stage', () => auctionOpenLot(player.player_id));
+  };
+
+  // Fastest-finger keyboard controls (ignored while typing or a dialog is open).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!live || drawing) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key;
+      if (k === 'Enter') {
+        if (!current && poolPlayers[0]) { e.preventDefault(); startDraw(); }
+        return;
+      }
+      if (k === 's' || k === 'S') { e.preventDefault(); void handleSell(); return; }
+      if (k === 'u' || k === 'U') { e.preventDefault(); void handleUnsold(); return; }
+      if (k === '+' || k === '=') { e.preventDefault(); void handleExtend(15); return; }
+      if (k === '-' || k === '_') { e.preventDefault(); void handleExtend(30); return; }
+      if (/^([1-9]|0)$/.test(k) && current) {
+        const team = teams[k === '0' ? 9 : Number(k) - 1];
+        if (team) { e.preventDefault(); void bidWith(team, amount); }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  // When the lot timer hits 0, prompt the admin once per lot.
+  useEffect(() => {
+    if (!live || !current) return;
+    if (remaining === null || remaining > 0) return;
+    const key = `${current.player_id}:${current.timer_ends_at ?? ''}`;
+    if (promptedRef.current === key) return;
+    promptedRef.current = key;
+    setTimeUp(true);
+  }, [live, current, remaining]);
+
   return (
-    <Card className="min-w-0">
-      <CardHeader className="pb-2">
+    <Card className="min-w-0 gap-3 py-4">
+      <CardHeader className="px-4 pb-2">
         <CardTitle className="flex items-center justify-between text-base">
           <span className="flex items-center gap-2"><Hammer /> STAGE</span>
-          {current && <LotBadge status={current.player_id ? 'on_auction' : 'pool'} />}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAutoNext((v) => !v)}
+              aria-pressed={autoNext}
+              title="After a sale/unsold, automatically open the next lot"
+              className={`inline-flex cursor-pointer select-none items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-bold transition-all active:scale-95 ${
+                autoNext
+                  ? 'border-emerald-500 bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25'
+                  : 'border-border bg-muted/40 text-muted-foreground hover:bg-accent'
+              }`}
+            >
+              <span className={`size-1.5 rounded-full transition-colors ${autoNext ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
+              AUTO-NEXT {autoNext ? 'ON' : 'OFF'}
+            </button>
+            {current && <LotBadge status="on_auction" />}
+          </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-4">
+      <CardContent className="grid gap-3 px-4">
         {current && live ? (
           <>
-            <div className="flex items-center gap-3">
-              <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-500">
+            <div className="flex items-center gap-4 rounded-xl border bg-background p-3">
+              <div className="size-20 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-500">
                 {current.photo_url
                   ? <img src={current.photo_url} alt="" className="size-full object-cover" />
-                  : <div className="grid size-full place-items-center font-black italic text-white">{initials(current.name)}</div>}
+                  : <div className="grid size-full place-items-center text-xl font-black italic text-white">{initials(current.name)}</div>}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-lg font-black italic leading-tight">{current.name}</p>
+                <p className="truncate text-2xl font-black italic leading-tight">{current.name}</p>
                 <p className="text-xs text-muted-foreground">
                   LOT #{current.lot_order} · {current.player_type} · {current.location} · {current.self_rating}.0 ★ · Base {formatCompact(current.base_price)}
                 </p>
               </div>
-              {remaining != null && (
-                <div className={`ml-auto shrink-0 text-right ${remaining <= 10 ? 'text-destructive' : ''}`}>
-                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground">LOT CLOSES</p>
-                  <p className="text-2xl font-black tabular-nums">{remaining}s</p>
+              <div className="ml-auto flex items-center gap-5">
+                <div className="text-right">
+                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground">HIGH BID</p>
+                  <p className={`text-4xl font-black leading-none ${currentBid ? 'text-emerald-500' : 'text-foreground'}`}>{formatCompact(currentBid?.amount ?? current.base_price)}</p>
+                  <p className="mt-1 text-xs font-bold text-muted-foreground">{leader ? leader.code : 'no bids yet'}</p>
                 </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              <Button size="sm" variant="outline" disabled={busy || remaining === 0} onClick={() => handleExtend(15)}><TimerReset /> +15S</Button>
-              <Button size="sm" variant="outline" disabled={busy || remaining === 0} onClick={() => handleExtend(30)}><TimerReset /> +30S</Button>
-              <div className="ml-auto text-right">
-                <p className="text-[10px] font-bold tracking-widest text-muted-foreground">HIGH BID</p>
-                <p className={`text-xl font-black ${currentBid ? 'text-emerald-500' : 'text-foreground'}`}>{formatInr(currentBid?.amount ?? current.base_price)}</p>
-                {currentBid && <p className="text-xs font-semibold text-muted-foreground">{currentBid.team_name}</p>}
+                {remaining != null && (
+                  <div className={`shrink-0 text-right ${remaining <= 10 ? 'text-destructive' : ''}`}>
+                    <p className="text-[10px] font-bold tracking-widest text-muted-foreground">CLOSES</p>
+                    <p className="text-4xl font-black leading-none tabular-nums">{remaining}s</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="grid gap-2 rounded-xl border bg-background p-3">
-              <Label className="text-[10px] font-bold tracking-widest text-muted-foreground">BID — {selectedTeam ? `${selectedTeam.code} has ${formatCompact(selectedTeamBalance)}` : 'pick a team'}</Label>
-              <Select value={bidTeam} onValueChange={setBidTeam}>
-                <SelectTrigger><SelectValue placeholder="Choose team" /></SelectTrigger>
-                <SelectContent>
-                  {teams.map((team) => (
-                    <SelectItem key={team.team_id} value={team.team_id} disabled={team.squad >= (state?.squad_size ?? 11) || team.budget - team.spent <= floor}>
-                      {team.code || team.name} · {formatCompact(team.budget - team.spent)} left · {team.squad}/{state?.squad_size ?? 11}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex flex-wrap gap-2">
-                {quickAmounts.map((value) => (
-                  <Button key={value} type="button" size="sm" variant="secondary" onClick={() => setAmount(String(value))}>{formatCompact(value)}</Button>
-                ))}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold tracking-widest text-muted-foreground">NEXT BID</span>
+              <div className="flex flex-wrap gap-1.5">
+                {ladder.map((value) => {
+                  const canAfford = affordableCount(value);
+                  return (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={Number(amount) === value ? 'default' : 'secondary'}
+                      className="h-8 tabular-nums"
+                      disabled={canAfford === 0}
+                      title={canAfford === 0 ? 'No eligible team can afford this' : `${canAfford} team(s) can bid this`}
+                      onClick={() => setAmount(String(value))}
+                    >
+                      {formatCompact(value)}
+                      <span className="ml-1 text-[9px] font-bold opacity-70">{canAfford}</span>
+                    </Button>
+                  );
+                })}
               </div>
-              <Input type="number" min={floor + 1} placeholder={`Amount (min ${formatInr(floor + 1)})`} value={amount} onChange={(e) => setAmount(e.target.value)} />
-              <Button onClick={handleBid} disabled={busy || remaining === 0 || !bidTeam}><Hammer /> PLACE BID</Button>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="destructive" onClick={handleUnsold} disabled={busy}>UNSOLD</Button>
-                <Button variant="default" className="bg-emerald-600 hover:bg-emerald-500" onClick={handleSell} disabled={busy || !currentBid}>SELL @ {currentBid ? formatCompact(floor) : '—'}</Button>
+              <Input
+                type="number"
+                min={floor + 1}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="ml-auto h-8 w-28 tabular-nums"
+                placeholder={`min ${floor + 1}`}
+              />
+              <Button size="sm" variant="outline" className="h-8" disabled={busy} onClick={() => handleExtend(15)}><TimerReset /> +15s</Button>
+              <Button size="sm" variant="outline" className="h-8" disabled={busy} onClick={() => handleExtend(30)}><TimerReset /> +30s</Button>
+            </div>
+
+            <div className="grid gap-1.5 rounded-xl border bg-background p-3">
+              <Label className="flex items-center justify-between text-[10px] font-bold tracking-widest text-muted-foreground">
+                <span>TAP A TEAM TO BID {formatInr(Number(amount) || minNext)} · {teams.length} TEAMS</span>
+                {femaleQuota > 0 && <span className="text-pink-500">♀ MIN {femaleQuota} / TEAM</span>}
+              </Label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                {teams.map((team) => {
+                  const isLeader = team.team_id === leaderId;
+                  const need = femaleNeed(team);
+                  const overMax = staged > teamBalance(team);
+                  const disabled = busy || !canTeamBid(team) || overMax;
+                  return (
+                    <Button
+                      key={team.team_id}
+                      type="button"
+                      variant={isLeader ? 'default' : 'outline'}
+                      className={`h-auto flex-col items-start gap-0.5 py-2 ${isLeader ? 'bg-emerald-600 hover:bg-emerald-500' : ''}`}
+                      disabled={disabled}
+                      title={
+                        overMax ? `Max bid ${formatCompact(teamBalance(team))} — staged bid is higher`
+                        : need > 0 ? `${team.code} still needs ${need} female player(s)`
+                        : `${team.code} female quota met`
+                      }
+                      onClick={() => void bidWith(team, amount)}
+                    >
+                      <span className="flex w-full items-center justify-between gap-1 text-sm font-black">
+                        <span className="truncate">{team.code || team.name}</span>
+                        {isLeader && <span className="text-[9px] font-bold opacity-90">TOP</span>}
+                      </span>
+                      <span className="text-[9px] font-semibold opacity-80">
+                        MAX {formatCompact(teamBalance(team))} · {team.squad}/{squadSize} · ♀{femalesOf(team)}/{femaleQuota}
+                      </span>
+                      {!currentIsFemale && need > 0 && (
+                        <span className="text-[8px] font-bold text-pink-500">♀ NEED {need}</span>
+                      )}
+                    </Button>
+                  );
+                })}
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="destructive" onClick={handleUnsold} disabled={busy}>UNSOLD</Button>
+              <Button className="bg-emerald-600 hover:bg-emerald-500" onClick={handleSell} disabled={busy || !leader}>
+                {leader ? `SELL ${formatCompact(floor)} → ${leader.code}` : 'SELL (no bid)'}
+              </Button>
             </div>
           </>
         ) : (
           <div className="grid gap-3">
             <div className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
               {live
-                ? (poolPlayers.length ? 'No lot on stage. Open the next player below.' : 'Lot queue empty — all players processed.')
+                ? (poolPlayers.length ? 'No lot on stage. Draw the next lot below.' : 'Lot queue empty — all players processed.')
                 : 'Session is not live. Edit status to LIVE or start a new session.'}
             </div>
             {live && poolPlayers.length > 0 && (
               <div className="grid gap-2 rounded-xl border bg-background p-3">
-                <Label className="text-[10px] font-bold tracking-widest text-muted-foreground">OPEN NEXT LOT</Label>
-                <Select value={nextPlayerId} onValueChange={setNextPlayerId}>
-                  <SelectTrigger><SelectValue placeholder={poolPlayers[0]?.name ?? 'No pool players'} /></SelectTrigger>
-                  <SelectContent>
-                    {poolPlayers.map((player) => (
-                      <SelectItem key={player.player_id} value={player.player_id}>#{player.lot_order} {player.name} · base {formatCompact(player.base_price)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="grid gap-1.5">
-                  <Label className="text-[10px] font-bold tracking-widest text-muted-foreground">BASE PRICE ₹</Label>
-                  <div className="flex gap-2">
-                    <Input type="number" min={0} placeholder="e.g. 100000" value={base} onChange={(e) => setBase(e.target.value)} />
-                    {[100000, 300000, 500000].map((b) => <Button key={b} type="button" size="sm" variant="outline" onClick={() => setBase(String(b))}>{formatCompact(b)}</Button>)}
+                <Button onClick={startDraw} disabled={busy} className="h-12 text-sm font-black tracking-widest">
+                  <Shuffle /> DRAW RANDOM LOT
+                </Button>
+                <details className="text-xs">
+                  <summary className="cursor-pointer select-none text-[10px] font-bold tracking-widest text-muted-foreground">OR PICK MANUALLY</summary>
+                  <div className="mt-2 grid gap-2">
+                    <Select value={nextPlayerId} onValueChange={setNextPlayerId}>
+                      <SelectTrigger><SelectValue placeholder={poolPlayers[0]?.name ?? 'No pool players'} /></SelectTrigger>
+                      <SelectContent>
+                        {poolPlayers.map((player) => (
+                          <SelectItem key={player.player_id} value={player.player_id}>#{player.lot_order} {player.name} · base {formatCompact(player.base_price)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="grid gap-1.5">
+                      <Label className="text-[10px] font-bold tracking-widest text-muted-foreground">BASE PRICE ₹</Label>
+                      <div className="flex gap-2">
+                        <Input type="number" min={0} placeholder="e.g. 20" value={base} onChange={(e) => setBase(e.target.value)} />
+                        {[20, 50, 100].map((b) => <Button key={b} type="button" size="sm" variant="outline" onClick={() => setBase(String(b))}>{formatCompact(b)}</Button>)}
+                      </div>
+                    </div>
+                    <Button onClick={handleOpenNext} disabled={busy}><Play /> PUT ON STAGE</Button>
                   </div>
-                </div>
-                <Button onClick={handleOpenNext} disabled={busy}><Play /> PUT ON STAGE</Button>
+                </details>
               </div>
             )}
           </div>
         )}
+
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[9px] text-muted-foreground">
+          <span className="font-bold tracking-widest">KEYS</span>
+          <span><b className="text-foreground">ENTER</b> draw</span>
+          <span><b className="text-foreground">1–9/0</b> team bid</span>
+          <span><b className="text-foreground">S</b> sell</span>
+          <span><b className="text-foreground">U</b> unsold</span>
+          <span><b className="text-foreground">+/−</b> extend</span>
+        </div>
 
         {(state?.bids?.length ?? 0) > 0 && (
           <div className="rounded-xl border bg-background/60 p-3">
@@ -737,6 +966,48 @@ function StagePanel({ session, state, current, currentBid, players, teams, onCha
           </span>
         </div>
       </CardContent>
+
+      <Dialog open={timeUp} onOpenChange={setTimeUp}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>TIME&apos;S UP</DialogTitle>
+            <DialogDescription>
+              {current ? `Lot time ended for ${current.name}. Mark unsold or extend the clock?` : 'Lot time ended.'}
+            </DialogDescription>
+          </DialogHeader>
+          {current && (
+            <div className="rounded-lg border bg-background p-3 text-sm">
+              {leader
+                ? <span><b>{leader.code}</b> leads at <b className="text-emerald-600">{formatCompact(floor)}</b></span>
+                : <span className="text-muted-foreground">No bids yet · base {formatCompact(current.base_price)}</span>}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <Button className="col-span-2 bg-emerald-600 hover:bg-emerald-500" disabled={busy || !leader} onClick={() => { setTimeUp(false); void handleSell(); }}>
+              {leader ? `SELL ${formatCompact(floor)} → ${leader.code}` : 'SELL (no bid)'}
+            </Button>
+            <Button variant="destructive" disabled={busy} onClick={() => { setTimeUp(false); void handleUnsold(); }}>UNSOLD</Button>
+            <Button variant="outline" disabled={busy} onClick={() => { setTimeUp(false); void handleExtend(30); }}><TimerReset /> +30s</Button>
+            <Button variant="outline" className="col-span-2" disabled={busy} onClick={() => { setTimeUp(false); void handleExtend(60); }}><TimerReset /> +60s</Button>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTimeUp(false)}>KEEP OPEN</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {drawing && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-primary/40 bg-background p-10 text-center shadow-2xl">
+            <p className="text-xs font-black tracking-[0.35em] text-primary">DRAWING NEXT LOT</p>
+            <div className="my-8 grid place-items-center">
+              <Shuffle className="mb-4 size-6 animate-spin text-muted-foreground" />
+              <p className="min-h-[2.5rem] text-4xl font-black italic tabular-nums">{drawName || '—'}</p>
+            </div>
+            <p className="text-xs text-muted-foreground">Lucky dip — good luck teams!</p>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
@@ -745,27 +1016,76 @@ function StagePanel({ session, state, current, currentBid, players, teams, onCha
 // Lot queue + results (with undo)
 // ---------------------------------------------------------------------------
 
-function QueuePanel({ players, teams, current, onChanged }: {
+function QueuePanel({ players, teams, current, defaultBase, onChanged }: {
   players: AuctionAdminLot[];
   teams: AuctionAdminState['teams'];
   current: AuctionAdminState['current_player'];
+  defaultBase: number;
   onChanged: () => Promise<void>;
 }) {
   const [tab, setTab] = useState<'all' | 'pool' | 'sold' | 'unsold'>('pool');
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [base, setBase] = useState('');
+  const [manageId, setManageId] = useState<string | null>(null);
+  const [editTeam, setEditTeam] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [q, setQ] = useState('');
+  const [hideRetained, setHideRetained] = useState(true);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+      if (e.key === '/' && !typing && !document.querySelector('[role="dialog"][data-state="open"]')) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      } else if (e.key === 'Escape' && document.activeElement === searchRef.current) {
+        setQ('');
+        searchRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const teamName = (id: string | null) => teams.find((t) => t.team_id === id)?.code ?? '—';
+  const visible = players.filter((p) => !hideRetained || p.source !== 'retained');
+  const retainedCount = players.filter((p) => p.source === 'retained').length;
   const counts = {
-    all: players.length,
-    pool: players.filter((p) => p.status === 'pool').length,
-    sold: players.filter((p) => p.status === 'sold').length,
-    unsold: players.filter((p) => p.status === 'unsold').length,
+    all: visible.length,
+    pool: visible.filter((p) => p.status === 'pool').length,
+    sold: visible.filter((p) => p.status === 'sold').length,
+    unsold: visible.filter((p) => p.status === 'unsold').length,
   };
-  const rows = players
-    .filter((p) => tab === 'all' || p.status === tab)
-    .sort((a, b) => a.lot_order - b.lot_order);
+  const query = q.trim().toLowerCase();
+  const rows = visible
+    .filter((p) => {
+      if (query) {
+        // A search spans all statuses so you can find any lot by name / # / team.
+        return p.name.toLowerCase().includes(query)
+          || String(p.lot_order) === query
+          || (p.sold_to_team_id ? teamName(p.sold_to_team_id).toLowerCase().includes(query) : false);
+      }
+      return tab === 'all' || p.status === tab;
+    })
+    .sort((a, b) => {
+      // SOLD tab: most recently sold first. Everything else: lot order.
+      if (!query && tab === 'sold') {
+        return new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime();
+      }
+      return a.lot_order - b.lot_order;
+    });
+
+  const openDirect = async (player: AuctionAdminLot) => {
+    setBusy(true);
+    const res = await auctionOpenLot(player.player_id);
+    setBusy(false);
+    if (res.error) { toast.error(res.error); return; }
+    toast.success(`${player.name} is on the stage.`);
+    await onChanged();
+  };
 
   const openPlayer = async (player: AuctionAdminLot) => {
     const baseNum = Number(base);
@@ -795,71 +1115,147 @@ function QueuePanel({ players, teams, current, onChanged }: {
 
   const undoPlayer = async (player: AuctionAdminLot) => {
     if (player.source === 'retained') { toast.error('Retained players can’t be undone.'); return; }
-    if (!window.confirm(`Undo ${player.name} (${player.status})? Back to pool.`)) return;
+    setBusy(true);
     const res = await auctionUndo(player.player_id);
-    if (res.error) toast.error(res.error); else toast.success('Undone.');
+    setBusy(false);
+    if (res.error) toast.error(res.error); else toast.success(`${player.name} → pool`);
+    await onChanged();
+  };
+
+  const openManage = (player: AuctionAdminLot) => {
+    setManageId(player.player_id);
+    setEditTeam(player.sold_to_team_id ?? '');
+    setEditPrice(String(player.sold_price ?? ''));
+  };
+
+  const saveEdit = async (player: AuctionAdminLot) => {
+    if (!editTeam) { toast.error('Pick a team.'); return; }
+    const price = Number(editPrice);
+    if (!price || price < 0) { toast.error('Enter a valid price.'); return; }
+    setBusy(true);
+    const res = await auctionEditResult(player.player_id, editTeam, price);
+    setBusy(false);
+    if (res.error) { toast.error(res.error); return; }
+    toast.success('Result updated.');
+    setManageId(null);
+    await onChanged();
+  };
+
+  const deleteLot = async (player: AuctionAdminLot) => {
+    if (!window.confirm(`Delete ${player.name} from this auction entirely?\n\nRemoves the lot, its bids and any sale.`)) return;
+    setBusy(true);
+    const res = await auctionDeleteLot(player.player_id);
+    setBusy(false);
+    if (res.error) { toast.error(res.error); return; }
+    toast.success('Lot deleted.');
+    setManageId(null);
     await onChanged();
   };
 
   return (
-    <Card className="min-w-0">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-base">
-          <span>LOT QUEUE · {counts.all}</span>
-          <div className="flex gap-1">
-            {(['all', 'pool', 'sold', 'unsold'] as const).map((key) => (
-              <Button key={key} size="sm" variant={tab === key ? 'default' : 'ghost'} className="h-7 px-2 text-[11px]" onClick={() => setTab(key)}>
-                {key.toUpperCase()} {counts[key]}
-              </Button>
-            ))}
+    <Card className="flex min-w-0 flex-col gap-2 py-3">
+      <CardHeader className="gap-1.5 px-3 pb-1">
+        <CardTitle className="text-base">LOT QUEUE · {counts.all}</CardTitle>
+        <div className="flex flex-nowrap items-center gap-1">
+          {(['all', 'pool', 'sold', 'unsold'] as const).map((key) => (
+            <Button key={key} size="sm" variant={tab === key ? 'default' : 'ghost'} className="h-6 min-w-0 flex-1 whitespace-nowrap px-1 text-[9px]" onClick={() => setTab(key)}>
+              {key.toUpperCase()} {counts[key]}
+            </Button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              ref={searchRef}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search name / lot # / team  (/)"
+              className="h-7 pl-7 pr-7 text-[11px]"
+            />
+            {q && (
+              <button
+                type="button"
+                onClick={() => setQ('')}
+                title="Clear"
+                className="absolute right-1.5 top-1/2 grid size-4 -translate-y-1/2 place-items-center rounded text-muted-foreground hover:text-foreground"
+              >
+                ×
+              </button>
+            )}
           </div>
-        </CardTitle>
+          <button
+            type="button"
+            onClick={() => setHideRetained((v) => !v)}
+            aria-pressed={!hideRetained}
+            title={hideRetained ? 'Show retained players' : 'Hide retained players'}
+            className={`shrink-0 rounded-md border px-1.5 py-1 text-[9px] font-bold transition-colors ${
+              !hideRetained
+                ? 'border-amber-500 bg-amber-500/15 text-amber-600'
+                : 'border-border bg-muted/40 text-muted-foreground hover:bg-accent'
+            }`}
+          >
+            ★ {retainedCount}
+          </button>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-h-0 flex-1 px-3">
         {rows.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Nothing here.</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">{query ? 'No matches.' : 'Nothing here.'}</p>
         ) : (
-          <div className="max-h-[340px] overflow-auto">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-card text-left text-[10px] uppercase tracking-widest text-muted-foreground">
-                <tr>
-                  <th className="px-2 py-1.5">#</th>
-                  <th className="px-2 py-1.5">Player</th>
-                  <th className="px-2 py-1.5 text-right">Base</th>
-                  <th className="px-2 py-1.5 text-right">Result</th>
-                  <th className="px-2 py-1.5" />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((player) => {
-                  const isCurrent = current?.player_id === player.player_id;
-                  return (
-                    <tr key={player.player_id} className={`border-t border-border/60 ${isCurrent ? 'bg-amber-500/10' : ''}`}>
-                      <td className="px-2 py-1.5 tabular-nums text-muted-foreground">{player.lot_order}</td>
-                      <td className="max-w-[200px] truncate px-2 py-1.5 font-semibold">
-                        {player.name} {isCurrent && <span className="ml-1 text-[10px] font-bold text-amber-600">ON STAGE</span>}
-                      </td>
-                      <td className="px-2 py-1.5 text-right tabular-nums">{formatCompact(player.base_price)}</td>
-                      <td className="px-2 py-1.5 text-right">
-                        {player.status === 'sold' && player.source === 'retained' && <span className="font-bold text-amber-500">★ RETAINED · {teamName(player.sold_to_team_id)} · {formatCompact(player.sold_price ?? 0)}</span>}
-                        {player.status === 'sold' && player.source !== 'retained' && <span className="text-emerald-600">{teamName(player.sold_to_team_id)} · {formatCompact(player.sold_price ?? 0)}</span>}
-                        {player.status === 'unsold' && <span className="text-rose-500">UNSOLD</span>}
-                        {player.status === 'pool' && <span className="text-muted-foreground">—</span>}
-                        {player.status === 'on_auction' && <span className="font-bold text-amber-600">LIVE</span>}
-                      </td>
-                      <td className="px-2 py-1.5 text-right">
-                        {player.status === 'pool' && (
-                          <Button size="sm" variant="outline" className="h-7 px-2" disabled={busy} onClick={() => void openBaseDialog(player)}>OPEN</Button>
-                        )}
-                        {(player.status === 'sold' || player.status === 'unsold') && player.source !== 'retained' && (
-                          <Button size="sm" variant="ghost" className="h-7 px-2" disabled={busy} onClick={() => void undoPlayer(player)}><Undo2 /></Button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="max-h-[calc(100vh-15rem)] space-y-1 overflow-auto pr-1">
+            {rows.map((player) => {
+              const isCurrent = current?.player_id === player.player_id;
+              const undoable = (player.status === 'sold' || player.status === 'unsold') && player.source !== 'retained';
+              const openable = player.status === 'pool';
+              const clickable = openable || undoable;
+              const onRow = openable ? () => void openDirect(player) : undoable ? () => openManage(player) : undefined;
+              const customBase = defaultBase > 0 && player.base_price !== defaultBase;
+              const result =
+                player.status === 'sold' && player.source === 'retained' ? <span className="font-bold text-amber-500">★ {teamName(player.sold_to_team_id)} · {formatCompact(player.sold_price ?? 0)}</span>
+                : player.status === 'sold' ? <span className="font-semibold text-emerald-600">{teamName(player.sold_to_team_id)} · {formatCompact(player.sold_price ?? 0)}</span>
+                : player.status === 'unsold' ? <span className="font-semibold text-rose-500">UNSOLD</span>
+                : player.status === 'on_auction' ? <span className="font-bold text-amber-600">LIVE</span>
+                : null;
+              return (
+                <div
+                  key={player.player_id}
+                  role={clickable ? 'button' : undefined}
+                  tabIndex={clickable ? 0 : undefined}
+                  onClick={onRow}
+                  onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRow?.(); } } : undefined}
+                  title={openable ? `Open ${player.name}` : undoable ? `Manage ${player.name}` : undefined}
+                  className={`flex items-center gap-1.5 rounded-md border px-1.5 py-1 ${clickable ? 'cursor-pointer hover:border-primary hover:bg-accent/40' : ''} ${isCurrent ? 'border-amber-500 bg-amber-500/10' : ''}`}
+                >
+                  <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">#{player.lot_order}</span>
+                  <span className="truncate text-xs font-bold">{player.name}</span>
+                  {customBase && <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground">{formatCompact(player.base_price)}</span>}
+                  {result && <span className="ml-auto shrink-0 text-[9px]">{result}</span>}
+                  {openable && (
+                    <button
+                      type="button"
+                      title={`Custom base for ${player.name}`}
+                      disabled={busy}
+                      onClick={(e) => { e.stopPropagation(); void openBaseDialog(player); }}
+                      className="ml-auto grid size-6 shrink-0 place-items-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-40"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                  )}
+                  {undoable && (
+                    <button
+                      type="button"
+                      title={`Undo ${player.name} → pool`}
+                      disabled={busy}
+                      onClick={(e) => { e.stopPropagation(); void undoPlayer(player); }}
+                      className="ml-auto grid size-6 shrink-0 place-items-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-40"
+                    >
+                      <Undo2 className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>
@@ -889,36 +1285,118 @@ function QueuePanel({ players, teams, current, onChanged }: {
           })()}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={manageId !== null} onOpenChange={(o) => { if (!o) setManageId(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>MANAGE RESULT</DialogTitle>
+            <DialogDescription>Edit the sale or remove the lot from this auction.</DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const player = players.find((p) => p.player_id === manageId);
+            if (!player) return null;
+            const sold = player.status === 'sold';
+            return (
+              <div className="grid gap-3">
+                <p className="font-black italic">{player.name}</p>
+                {sold ? (
+                  <>
+                    <div className="grid gap-1.5">
+                      <Label>TEAM</Label>
+                      <Select value={editTeam} onValueChange={setEditTeam}>
+                        <SelectTrigger><SelectValue placeholder="Choose team" /></SelectTrigger>
+                        <SelectContent>
+                          {teams.map((t) => <SelectItem key={t.team_id} value={t.team_id}>{t.code || t.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label>SOLD PRICE ₹</Label>
+                      <Input type="number" min={0} value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+                    </div>
+                    <DialogFooter className="gap-2">
+                      <Button variant="destructive" disabled={busy} onClick={() => void deleteLot(player)}><Trash2 /> DELETE LOT</Button>
+                      <Button disabled={busy} onClick={() => void saveEdit(player)}>{busy ? 'SAVING…' : 'SAVE'}</Button>
+                    </DialogFooter>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">This lot is {player.status}. Return it to the pool or delete it from the auction.</p>
+                    <DialogFooter className="gap-2">
+                      <Button variant="destructive" disabled={busy} onClick={() => void deleteLot(player)}><Trash2 /> DELETE LOT</Button>
+                      <Button variant="outline" disabled={busy} onClick={() => { setManageId(null); void undoPlayer(player); }}><Undo2 /> BACK TO POOL</Button>
+                    </DialogFooter>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Teams + purses
+// Teams rail: purse, max bid and status (bidding happens on the stage)
 // ---------------------------------------------------------------------------
 
-function TeamsPanel({ teams, squadSize }: { teams: AuctionAdminState['teams']; squadSize: number }) {
+function TeamsRail({ teams, players, squadSize, femaleQuota, currentBid, floor }: {
+  teams: AuctionAdminState['teams'];
+  players: AuctionAdminLot[];
+  squadSize: number;
+  femaleQuota: number;
+  currentBid: AuctionAdminState['current_bid'];
+  floor: number;
+}) {
+  const leaderId = currentBid?.team_id ?? null;
+  const anyLot = floor > 0;
+  const femaleByTeam = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const p of players) {
+      if (p.status === 'sold' && p.gender === 'Female' && p.sold_to_team_id) {
+        map[p.sold_to_team_id] = (map[p.sold_to_team_id] ?? 0) + 1;
+      }
+    }
+    return map;
+  }, [players]);
+
   return (
-    <Card className="min-w-0">
-      <CardHeader className="pb-2"><CardTitle className="text-base">TEAM PURSES</CardTitle></CardHeader>
-      <CardContent>
+    <Card className="flex min-w-0 flex-col gap-2 py-3">
+      <CardHeader className="px-3 pb-1"><CardTitle className="text-base">TEAMS</CardTitle></CardHeader>
+      <CardContent className="px-3">
         {teams.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">No teams in this session yet.</p>
         ) : (
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="space-y-1">
             {teams.map((team) => {
-              const balance = team.budget - team.spent;
-              const pct = team.budget > 0 ? Math.max(0, Math.min(100, (balance / team.budget) * 100)) : 0;
+              const purse = team.budget;
+              const maxBid = Math.max(0, team.budget - team.spent);
+              const isLeader = team.team_id === leaderId;
+              const females = femaleByTeam[team.team_id] ?? 0;
+              const femaleNeed = Math.max(0, femaleQuota - females);
+              const full = team.squad >= squadSize;
+              const noBid = anyLot && maxBid <= floor;
+              const short = femaleNeed > 0 && (squadSize - team.squad) < femaleNeed;
+              const status = full ? 'SQUAD FULL' : noBid ? 'NO BID' : short ? '♀ SHORT' : 'ACTIVE';
+              const statusClass = full || noBid || short ? 'text-rose-500' : 'text-emerald-600';
               return (
-                <div key={team.team_id} className="rounded-xl border bg-background/60 p-3">
-                  <div className="flex items-center gap-2">
-                    {team.icon_url ? <img src={resolveAsset(team.icon_url)} alt="" className="size-6 rounded-full object-cover" /> : <div className="grid size-6 place-items-center rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 text-[10px] font-black text-white">{team.code?.slice(0, 2)}</div>}
-                    <b className="truncate">{team.code || team.name}</b>
+                <div key={team.team_id} className={`rounded-md border px-1.5 py-1 ${isLeader ? 'border-emerald-500 bg-emerald-500/10' : ''}`}>
+                  <div className="flex items-center gap-1">
+                    {team.icon_url
+                      ? <img src={resolveAsset(team.icon_url)} alt="" className="size-4 shrink-0 rounded-full object-cover" />
+                      : <div className="grid size-4 shrink-0 place-items-center rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 text-[8px] font-black text-white">{team.code?.slice(0, 2)}</div>}
+                    <b className="truncate text-[11px] leading-tight">{team.code || team.name}</b>
+                    {isLeader && <span className="shrink-0 text-[8px] font-bold text-emerald-600">TOP</span>}
+                    <span className={`ml-auto shrink-0 text-[8px] font-bold ${statusClass}`}>{status}</span>
                   </div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} /></div>
-                  <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
-                    <span><b className="text-foreground">{formatCompact(balance)}</b> left</span>
-                    <span>{team.squad}/{squadSize}</span>
+                  <div className="mt-0.5 flex items-center justify-between text-[10px] leading-tight">
+                    <span className="text-muted-foreground">PURSE <b className="text-foreground tabular-nums">{formatCompact(purse)}</b></span>
+                    <span className="text-muted-foreground">MAX BID <b className="text-foreground tabular-nums">{formatCompact(maxBid)}</b></span>
+                  </div>
+                  <div className="mt-0.5 flex items-center justify-between text-[9px] leading-tight text-muted-foreground">
+                    <span>Squad {team.squad}/{squadSize}</span>
+                    <span className={femaleNeed > 0 ? 'font-bold text-pink-500' : 'text-emerald-600'}>♀ {females}/{femaleQuota}</span>
                   </div>
                 </div>
               );
@@ -944,6 +1422,12 @@ function AuctionSettingsButton({ session, onSaved }: {
   const [increment, setIncrement] = useState('');
   const [timer, setTimer] = useState('');
   const [defaultBase, setDefaultBase] = useState('');
+  const [femaleQuota, setFemaleQuota] = useState('');
+  const [t1max, setT1max] = useState('');
+  const [t1, setT1] = useState('');
+  const [t2max, setT2max] = useState('');
+  const [t2, setT2] = useState('');
+  const [t3, setT3] = useState('');
   const [busy, setBusy] = useState(false);
 
   const openDialog = async () => {
@@ -954,6 +1438,12 @@ function AuctionSettingsButton({ session, onSaved }: {
       setIncrement(String(settings.increment));
       setTimer(String(settings.timer));
       setDefaultBase(String(settings.default_base));
+      setFemaleQuota(String(settings.female_quota));
+      setT1max(String(settings.tiers.tier1_max));
+      setT1(String(settings.tiers.tier1));
+      setT2max(String(settings.tiers.tier2_max));
+      setT2(String(settings.tiers.tier2));
+      setT3(String(settings.tiers.tier3));
     }
     setOpen(true);
   };
@@ -966,6 +1456,14 @@ function AuctionSettingsButton({ session, onSaved }: {
       increment: Number(increment) || 0,
       timer: Math.max(10, Number(timer) || 60),
       default_base: Math.max(0, Number(defaultBase) || 0),
+      female_quota: Math.max(0, Number(femaleQuota) || 0),
+      tiers: {
+        tier1_max: Math.max(1, Number(t1max) || DEFAULT_INCREMENT_TIERS.tier1_max),
+        tier1: Math.max(0, Number(t1) || 0),
+        tier2_max: Math.max(2, Number(t2max) || DEFAULT_INCREMENT_TIERS.tier2_max),
+        tier2: Math.max(0, Number(t2) || 0),
+        tier3: Math.max(0, Number(t3) || 0),
+      },
     };
     setBusy(true);
     const res = await saveAuctionSettings(payload);
@@ -1029,9 +1527,36 @@ function AuctionSettingsButton({ session, onSaved }: {
                 <Label>DEFAULT INCREMENT ₹</Label>
                 <Input type="number" min={0} value={increment} onChange={(e) => setIncrement(e.target.value)} required />
               </div>
-              <div className="col-span-2 grid gap-1.5">
+              <div className="grid gap-1.5">
                 <Label>DEFAULT PLAYER BASE PRICE ₹</Label>
                 <Input type="number" min={0} value={defaultBase} onChange={(e) => setDefaultBase(e.target.value)} required placeholder="Used when a lot has no explicit base" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>MIN FEMALE PLAYERS / TEAM</Label>
+                <Input type="number" min={0} value={femaleQuota} onChange={(e) => setFemaleQuota(e.target.value)} required />
+              </div>
+              <div className="col-span-2 mt-1 border-t pt-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Bid increments by price band
+              </div>
+              <div className="grid gap-1.5">
+                <Label>BAND 1 UP TO ₹</Label>
+                <Input type="number" min={1} value={t1max} onChange={(e) => setT1max(e.target.value)} required />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>BAND 1 STEP ₹</Label>
+                <Input type="number" min={0} value={t1} onChange={(e) => setT1(e.target.value)} required />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>BAND 2 UP TO ₹</Label>
+                <Input type="number" min={2} value={t2max} onChange={(e) => setT2max(e.target.value)} required />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>BAND 2 STEP ₹</Label>
+                <Input type="number" min={0} value={t2} onChange={(e) => setT2(e.target.value)} required />
+              </div>
+              <div className="col-span-2 grid gap-1.5">
+                <Label>ABOVE BAND 2 STEP ₹</Label>
+                <Input type="number" min={0} value={t3} onChange={(e) => setT3(e.target.value)} required />
               </div>
             </div>
             <DialogFooter>

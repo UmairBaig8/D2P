@@ -115,6 +115,7 @@ export type AuctionAdminLot = {
   sold_to_team_id: string | null;
   sold_price: number | null;
   opens_at: string | null;
+  updated_at?: string | null;
   source?: 'auction' | 'retained';
 };
 
@@ -200,19 +201,37 @@ export function fromDatetimeLocal(value: string): string | null {
 
 // ---- Auction settings (persisted auction config) ----
 
+export type AuctionIncrementTiers = {
+  tier1_max: number;
+  tier1: number;
+  tier2_max: number;
+  tier2: number;
+  tier3: number;
+};
+
+export const DEFAULT_INCREMENT_TIERS: AuctionIncrementTiers = {
+  tier1_max: 100,
+  tier1: 10,
+  tier2_max: 200,
+  tier2: 20,
+  tier3: 50,
+};
+
 export type AuctionSettings = {
   retention_price: number;
   purse: number;
   increment: number;
   timer: number;
   default_base: number;
+  female_quota: number;
+  tiers: AuctionIncrementTiers;
 };
 
 export async function fetchAuctionSettings(): Promise<AuctionSettings | null> {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('settings')
-    .select('auction_retention_price,auction_purse,auction_increment,auction_timer,auction_default_base')
+    .select('auction_retention_price,auction_purse,auction_increment,auction_timer,auction_default_base,auction_female_quota,auction_inc_tier1_max,auction_inc_tier1,auction_inc_tier2_max,auction_inc_tier2,auction_inc_tier3')
     .eq('id', 1)
     .single();
   if (error || !data) return null;
@@ -222,6 +241,14 @@ export async function fetchAuctionSettings(): Promise<AuctionSettings | null> {
     increment: Number(data.auction_increment) || 0,
     timer: Number(data.auction_timer) || 60,
     default_base: Number(data.auction_default_base) || 0,
+    female_quota: Math.max(0, Number(data.auction_female_quota) || 0),
+    tiers: {
+      tier1_max: Number(data.auction_inc_tier1_max) || DEFAULT_INCREMENT_TIERS.tier1_max,
+      tier1: Number(data.auction_inc_tier1) || DEFAULT_INCREMENT_TIERS.tier1,
+      tier2_max: Number(data.auction_inc_tier2_max) || DEFAULT_INCREMENT_TIERS.tier2_max,
+      tier2: Number(data.auction_inc_tier2) || DEFAULT_INCREMENT_TIERS.tier2,
+      tier3: Number(data.auction_inc_tier3) || DEFAULT_INCREMENT_TIERS.tier3,
+    },
   };
 }
 
@@ -235,10 +262,39 @@ export async function saveAuctionSettings(settings: AuctionSettings): Promise<{ 
       auction_increment: settings.increment,
       auction_timer: settings.timer,
       auction_default_base: settings.default_base,
+      auction_female_quota: Math.max(0, settings.female_quota),
+      auction_inc_tier1_max: settings.tiers.tier1_max,
+      auction_inc_tier1: settings.tiers.tier1,
+      auction_inc_tier2_max: settings.tiers.tier2_max,
+      auction_inc_tier2: settings.tiers.tier2,
+      auction_inc_tier3: settings.tiers.tier3,
       updated_at: new Date().toISOString(),
     })
     .eq('id', 1);
   return error ? { error: error.message } : {};
+}
+
+// Tiered bid step: current price determines the next increment.
+// Defaults: <100 → +10, <200 → +20, ≥200 → +50.
+export function incrementFor(current: number, tiers: AuctionIncrementTiers = DEFAULT_INCREMENT_TIERS): number {
+  const cur = Number(current) || 0;
+  if (cur < tiers.tier1_max) return Math.max(0, tiers.tier1);
+  if (cur < tiers.tier2_max) return Math.max(0, tiers.tier2);
+  return Math.max(0, tiers.tier3);
+}
+
+// Running bid ladder — each rung applies the tier for the value it lands on,
+// so boundaries stay correct (e.g. 95 → 105 → 125 → 145 …).
+export function bidLadder(floor: number, tiers: AuctionIncrementTiers = DEFAULT_INCREMENT_TIERS, steps = 8): number[] {
+  const out: number[] = [];
+  let value = Math.max(0, Number(floor) || 0);
+  for (let i = 0; i < steps; i += 1) {
+    const step = incrementFor(value, tiers);
+    if (step <= 0) break;
+    value += step;
+    out.push(value);
+  }
+  return out;
 }
 
 export function bidFloor(state: Pick<AuctionAdminState, 'current_bid' | 'current_player'>): number {
@@ -367,6 +423,14 @@ export function auctionUnsold(playerId: string): Promise<RpcResult> {
 
 export function auctionUndo(playerId: string): Promise<RpcResult> {
   return run('admin_auction_undo', { v_player: playerId });
+}
+
+export function auctionEditResult(playerId: string, teamId: string, price: number): Promise<RpcResult> {
+  return run('admin_auction_edit_result', { v_player: playerId, v_team: teamId, p_price: price });
+}
+
+export function auctionDeleteLot(playerId: string): Promise<RpcResult> {
+  return run('admin_auction_delete_lot', { v_player: playerId });
 }
 
 export function auctionExtend(playerId: string, seconds: number): Promise<RpcResult> {
