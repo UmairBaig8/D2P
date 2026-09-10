@@ -1,10 +1,11 @@
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/lib/useTheme';
 import SiteHeader from '@/components/SiteHeader';
 import { resolveAsset } from '@/lib/base';
 import {
   fetchAuctionLiveState,
   fetchAuctionSchedule,
+  fetchAuctionSettings,
   subscribeAuctionRealtime,
   formatCompact,
   formatCountdown,
@@ -154,49 +155,6 @@ function useCountdown(endAt: string | null | undefined, soundOn: boolean): numbe
   return rem;
 }
 
-function TeamStrip({ state }: { state: AuctionLiveState }) {
-  const teams = state.teams ?? [];
-  const squadSize = state.squad_size ?? 11;
-  const totalBudget = teams.reduce((sum, team) => sum + team.budget, 0);
-  return (
-    <div className="la-purse">
-      {teams.length === 0 ? (
-        <div className="la-purse-empty">Team purses will appear here when the auction starts.</div>
-      ) : (
-        <div className="la-purse-grid">
-          {teams.map((team) => {
-            const remaining = team.budget - team.spent;
-            const pct = team.budget > 0 ? Math.max(0, Math.min(100, (remaining / team.budget) * 100)) : 0;
-            return (
-              <div className="la-team" key={team.team_id} title={team.name}>
-                <div className="la-team-head">
-                  {team.icon_url ? (
-                    <img className="la-team-icon" src={resolveAsset(team.icon_url)} alt="" />
-                  ) : (
-                    <span className="la-team-icon la-team-icon--fb">{initials(team.name)}</span>
-                  )}
-                  <span className="la-team-code">{team.code || team.name}</span>
-                  <span className="la-team-squad">{team.squad}/{squadSize}</span>
-                </div>
-                <div className="la-team-bar">
-                  <i style={{ width: `${pct}%` }} />
-                </div>
-                <div className="la-team-foot">
-                  <b>{formatCompact(remaining)}</b>
-                  <span>LEFT</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {totalBudget > 0 && (
-        <div className="la-purse-note">{teams.length || 8} teams · {formatInr(totalBudget)} combined purse</div>
-      )}
-    </div>
-  );
-}
-
 function FlipDigit({ digit }: { digit: string }) {
   const [previous, setPrevious] = useState(digit);
   const [flipping, setFlipping] = useState(false);
@@ -338,13 +296,14 @@ function Player3DCard({ player }: { player: NonNullable<AuctionLiveState['curren
 }
 
 function CircularTimer({ remaining, total }: { remaining: number | null; total: number }) {
-  if (remaining == null || total <= 0) return null;
   const R = 52;
   const C = 2 * Math.PI * R;
-  const frac = Math.max(0, Math.min(1, remaining / total));
-  const urgent = remaining <= 10;
-  const label =
-    remaining >= 60
+  const standby = remaining == null || total <= 0;
+  const frac = standby ? 1 : Math.max(0, Math.min(1, remaining / total));
+  const urgent = !standby && remaining <= 10;
+  const label = standby
+    ? '—'
+    : remaining >= 60
       ? `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`
       : String(remaining);
 
@@ -379,7 +338,7 @@ function CircularTimer({ remaining, total }: { remaining: number | null; total: 
         <div className="la-ring-num">
           <b>{label}</b>
           <span className={urgent ? 'la-urgent-text' : ''}>
-            {urgent ? '⌛ FINAL CALL' : 'TIME REMAINING'}
+            {standby ? 'STANDBY' : urgent ? '⌛ FINAL CALL' : 'TIME REMAINING'}
           </span>
         </div>
       </div>
@@ -446,12 +405,14 @@ function TeamsPanel({
   bidRows,
   floor,
   squadSize,
+  basePrice,
 }: {
   teams: AuctionLiveState['teams'];
   bid: AuctionLiveState['current_bid'];
   bidRows: AuctionLiveState['bids'];
   floor: number;
   squadSize: number;
+  basePrice: number;
 }) {
   const [pulseCode, setPulseCode] = useState<string | null>(null);
   const prevBid = useRef<string | null>(null);
@@ -475,13 +436,14 @@ function TeamsPanel({
   return (
     <section className="tps">
       <div className="la-teams">
-        {teams.map((team) => {
+        {spreadTeams(teams).map((team) => {
           const left = team.budget - team.spent;
           const isHighest = bid?.team_id === team.team_id;
           const isFull = team.squad >= squadSize;
           const inRange = left > floor;
           const low = !isHighest && !isFull && team.budget > 0 && left / team.budget < 0.15;
           const squadCount = Math.min(squadSize, Math.max(0, team.squad || 0));
+          const maxBid = Math.max(0, left - Math.max(0, squadSize - squadCount) * basePrice);
 
           let status: { text: string; cls: string; dot: string; badgeVar: 'cyan' | 'gold' | 'green' | 'red' | 'purple' } = {
             text: '',
@@ -505,7 +467,7 @@ function TeamsPanel({
             .join(' ');
 
           return (
-            <div className={cls} key={team.team_id} title={team.name} style={{ position: 'relative' }}>
+            <div className={`${cls} ${team.theme}`} key={team.team_id} title={team.name} style={{ position: 'relative' }}>
               {isHighest && <BorderBeam colorFrom="#ffd75e" colorTo="#3ddc97" duration={4} size={200} />}
 
               {/* Franchise Header */}
@@ -516,19 +478,23 @@ function TeamsPanel({
                   <span className="la-tcard-icon la-tcard-fb">{initials(team.name)}</span>
                 )}
                 <div className="la-tcard-id">
-                  <b className="la-tcard-code">{team.code || team.name}</b>
-                  <span className="la-tcard-name">{team.name}</span>
+                  <b className="la-tcard-name">{team.name}</b>
                 </div>
                 <span className={`la-tdot ${status.dot}`} />
+                <span className="la-tcard-code">{team.code || team.name}</span>
                 {status.text && <ShinyBadge variant={status.badgeVar}>{status.text}</ShinyBadge>}
               </div>
 
-              {/* Remaining Purse Hero Figure */}
-              <div className="la-tcard-amt">
-                <span>{low ? '⚠ PURSE LEFT' : 'REMAINING PURSE'}</span>
-                <strong>
-                  <NumberTicker value={left} formatter={(val) => formatCompact(val)} />
-                </strong>
+              {/* Purse + Max Bid tiles */}
+              <div className="la-tcard-metrics">
+                <div className="la-tcard-metric la-tcard-metric--purse">
+                  <span>{low ? '⚠ PURSE LEFT' : 'PURSE LEFT'}</span>
+                  <b>{formatCompact(left)}</b>
+                </div>
+                <div className="la-tcard-metric la-tcard-metric--maxbid">
+                  <span>MAX BID</span>
+                  <b>{maxBid > 0 ? formatCompact(maxBid) : '—'}</b>
+                </div>
               </div>
 
               {/* Purse Progress Bar */}
@@ -573,12 +539,13 @@ type FxEvent = {
   status: 'sold' | 'unsold';
   team_code: string | null;
   sold_price: number | null;
+  seq: number;
+  first: boolean;
 };
 
-function ConfettiLayer({ heat }: { heat: number }) {
+function ConfettiLayer({ heat, accent }: { heat: number; accent?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    if (!FX_ENABLED) return;
     const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -592,42 +559,134 @@ function ConfettiLayer({ heat }: { heat: number }) {
     canvas.style.height = `${h}px`;
     ctx.scale(dpr, dpr);
 
-    const count = Math.min(240, Math.max(70, Math.round(heat / 4000)));
     const colors = ['#09c9d8', '#2f7dff', '#ffd75e', '#ff8a3c', '#ffffff', '#3ddc97'];
-    const parts = Array.from({ length: count }, () => ({
-      x: Math.random() * w,
-      y: -20 - Math.random() * h * 0.35,
-      vy: 2.5 + Math.random() * 3.5,
-      vx: -2 + Math.random() * 4,
-      s: 5 + Math.random() * 7,
-      r: Math.random() * Math.PI,
-      vr: -0.2 + Math.random() * 0.4,
-      c: colors[Math.floor(Math.random() * colors.length)],
-    }));
-    const t0 = performance.now();
+    if (accent) colors.push(accent, accent, accent);
+
+    // Continuous confetti cannons from both sides — keeps throwing for the
+    // whole hold; particles fall with gravity and are culled off-screen.
+    const parts: { x: number; y: number; vx: number; vy: number; s: number; r: number; vr: number; c: string }[] = [];
     let raf = 0;
+    let last = performance.now();
+    let acc = 0;
+
+    const spawnBurst = () => {
+      const count = 6 + Math.floor(Math.random() * 5);
+      for (let i = 0; i < count; i++) {
+        const fromLeft = Math.random() < 0.5;
+        parts.push({
+          x: fromLeft ? -10 : w + 10,
+          y: h * (0.12 + Math.random() * 0.7),
+          vx: (fromLeft ? 1 : -1) * (4 + Math.random() * 10),
+          vy: (Math.random() - 0.5) * 9,
+          s: 7 + Math.random() * 9,
+          r: Math.random() * Math.PI,
+          vr: -0.3 + Math.random() * 0.6,
+          c: colors[Math.floor(Math.random() * colors.length)],
+        });
+      }
+      // extra top-rain for density
+      for (let i = 0; i < 4; i++) {
+        parts.push({
+          x: Math.random() * w,
+          y: -20,
+          vx: -1.5 + Math.random() * 3,
+          vy: 2 + Math.random() * 4,
+          s: 6 + Math.random() * 8,
+          r: Math.random() * Math.PI,
+          vr: -0.25 + Math.random() * 0.5,
+          c: colors[Math.floor(Math.random() * colors.length)],
+        });
+      }
+    };
+
     const tick = (t: number) => {
-      const el = (t - t0) / 1000;
+      const dt = (t - last) / 1000;
+      last = t;
+      acc += dt;
+      while (acc > 0.05) {
+        acc -= 0.05;
+        spawnBurst();
+      }
+
       ctx.clearRect(0, 0, w, h);
-      for (const p of parts) {
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i];
+        p.vy += 0.14;
+        p.x += p.vx;
         p.y += p.vy;
-        p.x += p.vx + Math.sin(t / 400 + p.r) * 0.6;
         p.r += p.vr;
+        if (p.y > h + 40 || p.x < -80 || p.x > w + 80) {
+          parts.splice(i, 1);
+          continue;
+        }
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.r);
         ctx.fillStyle = p.c;
-        ctx.globalAlpha = el > 1.8 ? Math.max(0, 1 - (el - 1.8) / 0.6) : 1;
-        ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+        ctx.fillRect(-p.s / 2, -p.s / 3, p.s, p.s * 0.66);
         ctx.restore();
       }
-      if (el < 2.6) raf = requestAnimationFrame(tick);
+      raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [heat]);
-  if (!FX_ENABLED) return null;
+  }, [heat, accent]);
   return <canvas ref={ref} className="fx-confetti" />;
+}
+
+const TEAM_ACCENTS: Record<string, string> = {
+  kings: '#ffc22e',
+  mavale: '#ff6b24',
+  mitra: '#35e783',
+  blaster: '#ff9d1c',
+  dhada: '#28a9ff',
+  wala: '#a4ef31',
+  titans: '#48aaff',
+  yodhas: '#ff7c27',
+  gallit: '#d9ff24',
+  dhurandhars: '#e9b94d',
+};
+
+const TEAM_FAMILIES: Record<string, string> = {
+  kings: 'gold',
+  dhurandhars: 'gold',
+  mavale: 'orange',
+  blaster: 'orange',
+  yodhas: 'orange',
+  dhada: 'blue',
+  titans: 'blue',
+  wala: 'lime',
+  gallit: 'lime',
+  mitra: 'green',
+};
+
+// Reorders teams so same-colour franchises are never adjacent in the 2-col grid.
+function spreadTeams(teams: AuctionLiveState['teams']): AuctionLiveState['teams'] {
+  const familyOf = (t: AuctionLiveState['teams'][number]) => TEAM_FAMILIES[t.theme] || t.theme || t.team_id;
+  const groups = new Map<string, AuctionLiveState['teams']>();
+  const order: string[] = [];
+  for (const t of teams) {
+    const f = familyOf(t);
+    if (!groups.has(f)) {
+      groups.set(f, []);
+      order.push(f);
+    }
+    groups.get(f)!.push(t);
+  }
+  const buckets = order.map((f) => groups.get(f)!).sort((a, b) => b.length - a.length);
+  const result: AuctionLiveState['teams'] = [];
+  let placed = true;
+  while (placed) {
+    placed = false;
+    for (const bucket of buckets) {
+      const t = bucket.shift();
+      if (t) {
+        result.push(t);
+        placed = true;
+      }
+    }
+  }
+  return result;
 }
 
 function Celebration({
@@ -639,36 +698,78 @@ function Celebration({
   teams: AuctionLiveState['teams'];
   onDone: () => void;
 }) {
-  useEffect(() => {
-    const t = window.setTimeout(onDone, 3000);
-    return () => window.clearTimeout(t);
-  }, [fx, onDone]);
-
   const sold = fx.status === 'sold';
   const team = teams.find((t) => t.code === fx.team_code);
-  return (
-    <div className={`fx fx-${fx.status}`} key={`${fx.name}-${fx.status}`}>
-      {sold && <ConfettiLayer heat={fx.sold_price ?? 100000} />}
-      <div className="fx-stamp">
-        <span className="fx-eyebrow">DPL 2026 · PLAYER {sold ? 'SOLD' : 'UNSOLD'}</span>
-        <div className={`fx-av${fx.photo_url ? ' has-img' : ''}`}>
-          {fx.photo_url ? <img src={fx.photo_url} alt="" /> : <span>{initials(fx.name)}</span>}
-          {sold && team?.icon_url && <img className="fx-team-ic" src={resolveAsset(team.icon_url)} alt="" />}
+  const themeClass = team?.theme ?? '';
+  const accent = TEAM_ACCENTS[team?.theme ?? ''] ?? '#ffd75e';
+  const price = fx.sold_price ?? 0;
+  const dur = sold ? (fx.first ? 7400 : 6900) : 3000;
+
+  useEffect(() => {
+    const t = window.setTimeout(onDone, dur);
+    return () => window.clearTimeout(t);
+  }, [fx, onDone, dur]);
+
+  if (!sold) {
+    return (
+      <div className="fx fx-unsold" key={fx.seq} style={{ '--accent': '#ff4b6e' } as React.CSSProperties}>
+        <button type="button" className="fx-close" onClick={onDone} aria-label="Close">
+          ✕
+        </button>
+        <div className="fx-tk-soldcard">
+          <div className="fx-tk-soldcard-photo">
+            <BorderBeam colorFrom="#ff4b6e" colorTo="#ff8fa3" duration={5} size={220} />
+            {fx.photo_url ? <img src={fx.photo_url} alt="" /> : <span>{initials(fx.name)}</span>}
+            <div className="fx-tk-soldcard-unsold">UNSOLD</div>
+          </div>
+          <div className="fx-tk-soldcard-name">{fx.name}</div>
+          <div className="fx-tk-soldcard-funny">
+            <b>NO TAKERS!</b>
+            <span>Even the hammer stayed quiet — better luck next lot 🏏</span>
+          </div>
         </div>
-        <h2 className="fx-name">{fx.name}</h2>
-        {sold ? (
-          <>
-            <span className="fx-team">{fx.team_code ?? '—'}</span>
-            {fx.sold_price != null && (
-              <strong className="fx-price">
-                <NumberTicker value={fx.sold_price} formatter={(v) => formatInr(v)} />
-              </strong>
-            )}
-          </>
-        ) : (
-          <span className="fx-team fx-team--unsold">UNSOLD</span>
-        )}
       </div>
+    );
+  }
+
+  return (
+    <div
+      className={`fx fx-takeover${fx.first ? '' : ' fx-quick'} ${themeClass}`}
+      key={fx.seq}
+    >
+      <div className="fx-tk-veil" />
+      <div className="fx-tk-burst" />
+
+      <div className="fx-tk-sold">SOLD!</div>
+
+      <div className="fx-tk-fly">
+        {fx.photo_url ? <img src={fx.photo_url} alt="" /> : <span>{initials(fx.name)}</span>}
+      </div>
+
+      <div className="fx-tk-trail" />
+
+      <div className="fx-tk-soldcard">
+        <div className="fx-tk-soldcard-photo">
+          <BorderBeam colorFrom="var(--accent)" colorTo="#ffffff" duration={5} size={220} />
+          {fx.photo_url ? <img src={fx.photo_url} alt="" /> : <span>{initials(fx.name)}</span>}
+          <div className="fx-tk-soldcard-team">
+            {team?.icon_url ? (
+              <img src={resolveAsset(team.icon_url)} alt="" />
+            ) : (
+              <span>{initials(team?.name ?? fx.team_code ?? '')}</span>
+            )}
+          </div>
+          <div className="fx-tk-soldcard-price">
+            SOLD · <NumberTicker value={price} formatter={(v) => formatInr(v)} />
+          </div>
+        </div>
+        <div className="fx-tk-soldcard-name">{fx.name}</div>
+        <div className="fx-tk-soldcard-welcome">
+          WELCOME TO <b>{team?.name ?? fx.team_code ?? ''}</b>
+        </div>
+      </div>
+
+      <ConfettiLayer heat={price} accent={accent} />
     </div>
   );
 }
@@ -677,9 +778,27 @@ function PricePanel({
   player,
   bid,
 }: {
-  player: NonNullable<AuctionLiveState['current_player']>;
+  player: AuctionLiveState['current_player'];
   bid: AuctionLiveState['current_bid'];
 }) {
+  if (!player) {
+    return (
+      <section className="la-pricep" style={{ position: 'relative' }}>
+        <BorderBeam colorFrom="#09c9d8" colorTo="#2f7dff" duration={6} size={240} />
+        <div className="la-hero-top">
+          <ShinyBadge variant="cyan">🔨 NEXT LOT</ShinyBadge>
+          <span className="la-hero-base">
+            BASE <b>—</b>
+          </span>
+        </div>
+        <div className="la-hero-num">—</div>
+        <div className="la-leader-spotlight la-leader-waiting">
+          <span>● AWAITING NEXT LOT</span>
+        </div>
+      </section>
+    );
+  }
+
   const currentVal = bid?.amount ?? player.base_price;
   const isHighBid = Boolean(bid);
 
@@ -728,75 +847,55 @@ function AVAIL2(availability: string | null | undefined): string {
   return availability.replace('Available for ', '').replace('Need schedule confirmation', 'CONFIRM').toUpperCase();
 }
 
-// Suspense teaser shown while the session is live but no lot is on stage —
-// the next player is a surprise, so we reveal nothing about who's coming.
-function NextLotTeaser() {
+// Funny no-spoiler panel for the stats column while no lot is on stage.
+function SurprisePanel() {
   return (
-    <div className="la-teaser">
-      <span className="la-teaser-ring" />
-      <div className="la-teaser-copy">
-        <span className="la-teaser-eyebrow">DPL 2026 · AUCTION LIVE</span>
-        <h2>DRAWING THE NEXT LOT…</h2>
-        <p>The committee is selecting the next player. Hold tight — the hammer drops soon.</p>
+    <section className="pi-panel la-surprise">
+      <span className="la-surprise-emoji">🤫</span>
+      <div className="la-surprise-copy">
+        <span className="la-surprise-eyebrow">TOP SECRET</span>
+        <h2>NO PEEKING!</h2>
+        <p>The committee is keeping the next star under wraps — even the auctioneer signed an NDA. 🤐</p>
       </div>
-    </div>
+    </section>
   );
 }
 
-// Interactive profile cards for the recently closed lots (sold + unsold).
-function ResultCards({ results, teams }: { results: AuctionResultRow[]; teams: AuctionLiveState['teams'] }) {
-  const rows = [...results].reverse().slice(0, 6);
+// Static face-down card back shown while the session is live but no lot is on
+// stage — stays un-flipped until the committee selects a player. Reuses the
+// exact `.la-3d` card frame so size/position match the live player card.
+function CardBack() {
   return (
-    <div className="la-results-stage">
-      <div className="la-results-head">
-        <div>
-          <span className="la-results-eyebrow">AUCTION LEDGER</span>
-          <h2>RECENTLY CLOSED LOTS</h2>
+    <div className="la-3d-wrap">
+      <article className="la-3d la-3d--back">
+        <BorderBeam colorFrom="#09c9d8" colorTo="#ffd75e" duration={6} size={260} />
+        <div className="la-3d-face la-3d-back la-3d-back--static la-cardback">
+          <div className="la-cardback-top">
+            <span className="la-cardback-brand">
+              DPL <b>2026</b>
+            </span>
+            <span className="la-cardback-live">
+              <i /> LIVE
+            </span>
+          </div>
+
+          <div className="la-cardback-center">
+            <div className="la-cardback-mark">?</div>
+            <div className="la-cardback-title">NEXT LOT</div>
+            <div className="la-cardback-sub">THE HAMMER IS READY</div>
+          </div>
+
+          <div className="la-cardback-bottom">
+            <span className="la-cardback-eyebrow">PLAYER AUCTION</span>
+            <div className="la-cardback-dots">
+              <i />
+              <i />
+              <i />
+            </div>
+            <span className="la-cardback-status">DRAWING SOON</span>
+          </div>
         </div>
-        <span className="la-results-count">{results.length} CLOSED</span>
-      </div>
-      {rows.length === 0 ? (
-        <div className="la-results-empty">No lots closed yet — the first hammer drop lands here.</div>
-      ) : (
-        <div className="la-results-grid">
-          {rows.map((row) => {
-            const team = teams.find((t) => t.code === row.team_code);
-            const sold = row.status === 'sold';
-            const retainedFree = row.source === 'retained' && !row.sold_price;
-            return (
-              <div className={`la-rcard${sold ? ' sold' : ' unsold'}`} key={`${row.lot_order}-${row.player_name}`}>
-                <div className="la-rcard-av">
-                  {row.photo_url ? (
-                    <img src={row.photo_url} alt={row.player_name} />
-                  ) : (
-                    <span>{initials(row.player_name)}</span>
-                  )}
-                  {sold && team?.icon_url && <img className="la-rcard-team" src={resolveAsset(team.icon_url)} alt="" />}
-                </div>
-                <div className="la-rcard-body">
-                  <span className="la-rcard-type">{row.player_type}</span>
-                  <b className="la-rcard-name">{row.player_name}</b>
-                  <span className="la-rcard-meta">LOT #{row.lot_order}{row.source === 'retained' ? ' · ★ RETAINED' : ''}</span>
-                </div>
-                <div className="la-rcard-price">
-                  {sold ? (
-                    retainedFree ? (
-                      <span className="la-rcard-retained">RETAINED</span>
-                    ) : (
-                      <>
-                        <span className="la-rcard-team">{row.team_code ?? '—'}</span>
-                        <b>{formatInr(row.sold_price ?? 0)}</b>
-                      </>
-                    )
-                  ) : (
-                    <span className="la-rcard-unsold">UNSOLD</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      </article>
     </div>
   );
 }
@@ -804,12 +903,12 @@ function ResultCards({ results, teams }: { results: AuctionResultRow[]; teams: A
 // Generate rich mock demo live state when offline or demo toggled
 function createMockDemoState(): AuctionLiveState {
   const mockTeams = [
-    { team_id: 't1', name: 'Royal Strikers', code: 'RST', icon_url: '', theme: '#09c9d8', budget: 10000000, spent: 4200000, squad: 6, sold: 6 },
-    { team_id: 't2', name: 'Titan Warriors', code: 'TWR', icon_url: '', theme: '#ffd75e', budget: 10000000, spent: 3800000, squad: 5, sold: 5 },
-    { team_id: 't3', name: 'Thunder Kings', code: 'TKG', icon_url: '', theme: '#ff8a3c', budget: 10000000, spent: 5100000, squad: 7, sold: 7 },
-    { team_id: 't4', name: 'Cyber Panthers', code: 'CPN', icon_url: '', theme: '#3ddc97', budget: 10000000, spent: 2900000, squad: 4, sold: 4 },
-    { team_id: 't5', name: 'Phoenix Eleven', code: 'PHX', icon_url: '', theme: '#873cff', budget: 10000000, spent: 4600000, squad: 6, sold: 6 },
-    { team_id: 't6', name: 'Vanguard Tigers', code: 'VGT', icon_url: '', theme: '#ff4b6e', budget: 10000000, spent: 3100000, squad: 5, sold: 5 },
+    { team_id: 't1', name: 'Royal Strikers', code: 'RST', icon_url: '', theme: 'kings', budget: 10000000, spent: 4200000, squad: 6, sold: 6 },
+    { team_id: 't2', name: 'Titan Warriors', code: 'TWR', icon_url: '', theme: 'titans', budget: 10000000, spent: 3800000, squad: 5, sold: 5 },
+    { team_id: 't3', name: 'Thunder Kings', code: 'TKG', icon_url: '', theme: 'dhada', budget: 10000000, spent: 5100000, squad: 7, sold: 7 },
+    { team_id: 't4', name: 'Cyber Panthers', code: 'CPN', icon_url: '', theme: 'mitra', budget: 10000000, spent: 2900000, squad: 4, sold: 4 },
+    { team_id: 't5', name: 'Phoenix Eleven', code: 'PHX', icon_url: '', theme: 'mavale', budget: 10000000, spent: 4600000, squad: 6, sold: 6 },
+    { team_id: 't6', name: 'Vanguard Tigers', code: 'VGT', icon_url: '', theme: 'blaster', budget: 10000000, spent: 3100000, squad: 5, sold: 5 },
   ];
 
   return {
@@ -840,7 +939,7 @@ function createMockDemoState(): AuctionLiveState {
       bowling_style: 'Right-Arm Fast Medium',
       lot_order: 14,
       base_price: 500000,
-      timer_ends_at: new Date(Date.now() + 38000).toISOString(),
+      timer_ends_at: new Date(Date.now() + 20000).toISOString(),
     },
     current_bid: {
       team_id: 't1',
@@ -870,13 +969,11 @@ function createMockDemoState(): AuctionLiveState {
   };
 }
 
-const MemoTeamStrip = memo(TeamStrip);
 const MemoPlayer3DCard = memo(Player3DCard);
 const MemoCircularTimer = memo(CircularTimer);
 const MemoPlayerStats = memo(PlayerStats);
 const MemoTeamsPanel = memo(TeamsPanel);
 const MemoPricePanel = memo(PricePanel);
-const MemoResultCards = memo(ResultCards);
 
 export default function AuctionPage() {
   const { dark, toggleTheme } = useTheme();
@@ -886,6 +983,7 @@ export default function AuctionPage() {
   const [soundOn, setSoundOn] = useState(true);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [activeDrawer, setActiveDrawer] = useState<'bids' | 'activity' | null>(null);
+  const [defaultBase, setDefaultBase] = useState(0);
   const lastSigRef = useRef<string>('');
 
   // Unlock Web Audio on first user gesture (browsers block audio until interaction)
@@ -944,6 +1042,17 @@ export default function AuctionPage() {
     let alive = true;
     fetchAuctionSchedule().then((schedule) => {
       if (alive) setScheduledAt(schedule);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Default base price (used for max-bid reserve math) is fetched once.
+  useEffect(() => {
+    let alive = true;
+    fetchAuctionSettings().then((settings) => {
+      if (alive) setDefaultBase(settings?.default_base ?? 0);
     });
     return () => {
       alive = false;
@@ -1009,8 +1118,71 @@ export default function AuctionPage() {
   const totalLots = results.length + (state?.pool_count ?? 0);
   const progressPct = totalLots > 0 ? Math.round((results.length / totalLots) * 100) : 0;
 
+  // Demo auto-sell: when the lot timer expires, close the lot to the current
+  // highest bidder and bring up the next player so the SOLD reveal fires.
+  useEffect(() => {
+    if (!isDemoMode || !state?.current_player) return;
+    if (remaining !== 0) return;
+
+    setState((prev) => {
+      if (!prev || !prev.current_player) return prev;
+      const p = prev.current_player;
+      const winner = prev.current_bid;
+      const winnerTeam = winner
+        ? prev.teams.find((t) => t.team_id === winner.team_id) ?? prev.teams[0]
+        : prev.teams[0];
+      const price = winner?.amount ?? p.base_price;
+
+      const result: AuctionResultRow = {
+        player_name: p.name,
+        photo_url: p.photo_url,
+        player_type: p.player_type,
+        team_code: winnerTeam?.code ?? null,
+        sold_price: price,
+        status: 'sold',
+        source: 'auction',
+        lot_order: p.lot_order,
+      };
+
+      const next = prev.next_up?.[0];
+      const nextPlayer: AuctionLiveState['current_player'] = next
+        ? {
+            player_id: next.player_id,
+            name: next.name,
+            employee_id: `EMP-${100 + next.lot_order}`,
+            photo_url: next.photo_url,
+            player_type: next.player_type,
+            gender: 'Male',
+            location: 'DPL Arena',
+            dpl_played: true,
+            self_rating: 4,
+            availability: 'Available for full tournament',
+            batting_style: 'Right-Handed Batter',
+            bowling_style: 'Right-Arm Fast Medium',
+            lot_order: next.lot_order,
+            base_price: next.base_price,
+            timer_ends_at: new Date(Date.now() + 20000).toISOString(),
+          }
+        : null;
+
+      return {
+        ...prev,
+        current_player: nextPlayer,
+        current_bid: null,
+        bids: [],
+        bid_count: (prev.bid_count ?? 0) + 1,
+        pool_count: Math.max(0, (prev.pool_count ?? 0) - 1),
+        next_up: prev.next_up.slice(1),
+        results: [...(prev.results ?? []), result],
+      };
+    });
+  }, [isDemoMode, remaining, state?.current_player]);
+
   const [fx, setFx] = useState<FxEvent | null>(null);
   const prevResLen = useRef<number | null>(null);
+  const fxSeq = useRef(0);
+  const soldCount = useRef(0);
+  const handleFxDone = useCallback(() => setFx(null), []);
 
   useEffect(() => {
     const res = state?.results ?? [];
@@ -1020,12 +1192,17 @@ export default function AuctionPage() {
       if (prev != null && res.length > prev) {
         const last = res[res.length - 1];
         if (last.source !== 'retained' && (last.status === 'sold' || last.status === 'unsold')) {
+          const isSold = last.status === 'sold';
+          const first = isSold ? soldCount.current === 0 : false;
+          if (isSold) soldCount.current += 1;
           setFx({
             name: last.player_name,
             photo_url: last.photo_url,
             status: last.status,
             team_code: last.team_code,
             sold_price: last.sold_price,
+            seq: ++fxSeq.current,
+            first,
           });
           if (soundOn) synth.playSold();
         }
@@ -1142,41 +1319,31 @@ export default function AuctionPage() {
               </div>
             </div>
 
-            {/* Main Stage Grid (Teams Panel Gets Full Height) */}
+            {/* Main Stage Grid */}
             <div className="la-stage" style={{ flex: 1, minHeight: 0 }}>
-              {live && player ? (
-                <>
-                  <div className="la-live" style={{ height: '100%' }}>
-                    <div className="lg lg-stats">
-                      <MemoPlayerStats player={player} />
-                    </div>
-                    <div className="lg lg-card">
-                      <MemoPlayer3DCard key={player.player_id} player={player} />
-                    </div>
-                    <div className="lg lg-ctop">
-                      <MemoCircularTimer remaining={remaining} total={session.lot_timer_seconds} />
-                      <MemoPricePanel player={player} bid={bid} />
-                    </div>
-                    <div className="lg lg-teams" style={{ height: '100%' }}>
-                      <MemoTeamsPanel
-                        teams={state?.teams ?? []}
-                        bid={bid}
-                        bidRows={state?.bids ?? []}
-                        floor={bid?.amount ?? player.base_price ?? 0}
-                        squadSize={state?.squad_size ?? 11}
-                      />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="la-between">
-                  <NextLotTeaser />
-                  <MemoResultCards results={results} teams={state?.teams ?? []} />
+              <div className="la-live" style={{ height: '100%' }}>
+                <div className="lg lg-stats">
+                  {player ? <MemoPlayerStats player={player} /> : <SurprisePanel />}
                 </div>
-              )}
+                <div className="lg lg-card">
+                  {player ? <MemoPlayer3DCard key={player.player_id} player={player} /> : <CardBack />}
+                </div>
+                <div className="lg lg-ctop">
+                  <MemoCircularTimer remaining={remaining} total={session.lot_timer_seconds} />
+                  <MemoPricePanel player={player} bid={bid} />
+                </div>
+                <div className="lg lg-teams" style={{ height: '100%' }}>
+                  <MemoTeamsPanel
+                    teams={state?.teams ?? []}
+                    bid={bid}
+                    bidRows={state?.bids ?? []}
+                    floor={bid?.amount ?? player?.base_price ?? 0}
+                    squadSize={state?.squad_size ?? 11}
+                    basePrice={defaultBase}
+                  />
+                </div>
+              </div>
             </div>
-
-            {!(live && player) && <MemoTeamStrip state={state} />}
           </>
         )}
       </main>
@@ -1260,19 +1427,35 @@ export default function AuctionPage() {
       )}
 
       {/* Broadcast Rolling Ticker Marquee */}
-      {live && player && (
+      {live && (
         <footer className="la-ticker-wrap">
           <div className="la-ticker-tag">
             <Radio size={12} style={{ display: 'inline', marginRight: 4 }} /> LIVE FEED
           </div>
           <div className="la-ticker-track">
             <div className="la-ticker-item">
-              <span>LOT #{player.lot_order}</span> <b>{player.name.toUpperCase()}</b> ({player.player_type}) · BASE{' '}
-              {formatCompact(player.base_price)}
+              {player ? (
+                <>
+                  <span>LOT #{player.lot_order}</span> <b>{player.name.toUpperCase()}</b> ({player.player_type}) · BASE{' '}
+                  {formatCompact(player.base_price)}
+                </>
+              ) : (
+                <>
+                  <span>NEXT LOT</span> <b>DRAWING IN PROGRESS</b>
+                </>
+              )}
             </div>
             <div className="la-ticker-item">
-              <span>CURRENT HIGH BIDDER</span>{' '}
-              <b>{bid ? `${bid.team_code} @ ${formatInr(bid.amount)}` : 'WAITING FOR OPENING BID'}</b>
+              {player ? (
+                <>
+                  <span>CURRENT HIGH BIDDER</span>{' '}
+                  <b>{bid ? `${bid.team_code} @ ${formatInr(bid.amount)}` : 'WAITING FOR OPENING BID'}</b>
+                </>
+              ) : (
+                <>
+                  <span>COMMITTEE</span> <b>SELECTING NEXT PLAYER</b>
+                </>
+              )}
             </div>
             <div className="la-ticker-item">
               <span>DPL 2026 LEAGUE PURSE</span> <b>{formatInr(10000000)} CR PER TEAM</b>
@@ -1284,7 +1467,7 @@ export default function AuctionPage() {
         </footer>
       )}
 
-      {fx && <Celebration fx={fx} teams={state?.teams ?? []} onDone={() => setFx(null)} />}
+      {fx && <Celebration fx={fx} teams={state?.teams ?? []} onDone={handleFxDone} />}
     </div>
   );
 }

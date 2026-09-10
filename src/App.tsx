@@ -110,12 +110,12 @@ export default function App() {
             <div className="hero-copy">Same office. Different game.<br />This time, let&apos;s <strong>play for keeps.</strong></div>
             <div className="stat-tape"><div className="stat-tape-rail">{tapeTrack('a')}{tapeTrack('b')}</div></div>
           </div>
-          <ElectricBorder className="hero-flame" color="#00E5FF" speed={2.2} chaos={0.34} borderRadius={20}><aside className="hero-panel"><div className="panel-label">DPL 2026 / REGISTRATION WINDOW</div><div className="panel-title">Your spot is waiting.</div><div className="countdown"><div className="time"><b>{time(days)}</b><span>DAYS</span></div><div className="time"><b>{time(hours)}</b><span>HRS</span></div><div className="time"><b>{time(mins)}</b><span>MINS</span></div><div className="time"><b>{time(secs)}</b><span>SECS</span></div></div><div className="capacity"><div className="capacity-head"><span>PLAYERS REGISTERED</span><strong><span>{playerCount}</span> / {capacity}</strong></div><div className="meter"><i style={{ width: `${meterWidth}%` }} /></div><div className="spots">Only <strong>{spotsLeft} spots</strong> left. Don&apos;t sit this one out.</div></div><Magnet magnetStrength={3} padding={90}><a className="btn btn-primary panel-cta" href={withBase("/register")}>YES, COUNT ME IN →</a></Magnet></aside></ElectricBorder>
+          {/* <ElectricBorder className="hero-flame" color="#00E5FF" speed={2.2} chaos={0.34} borderRadius={20}><aside className="hero-panel"><div className="panel-label">DPL 2026 / REGISTRATION WINDOW</div><div className="panel-title">Your spot is waiting.</div><div className="countdown"><div className="time"><b>{time(days)}</b><span>DAYS</span></div><div className="time"><b>{time(hours)}</b><span>HRS</span></div><div className="time"><b>{time(mins)}</b><span>MINS</span></div><div className="time"><b>{time(secs)}</b><span>SECS</span></div></div><div className="capacity"><div className="capacity-head"><span>PLAYERS REGISTERED</span><strong><span>{playerCount}</span> / {capacity}</strong></div><div className="meter"><i style={{ width: `${meterWidth}%` }} /></div><div className="spots">Only <strong>{spotsLeft} spots</strong> left. Don&apos;t sit this one out.</div></div><Magnet magnetStrength={3} padding={90}><a className="btn btn-primary panel-cta" href={withBase("/register")}>YES, COUNT ME IN →</a></Magnet></aside></ElectricBorder> */}
         </section>
 
         <div className="home-quote">
           <div className="home-quote-text">Don&apos;t just work. <span>Play together.</span></div>
-          <a className="home-quote-cta" href={withBase("/register")}>🏏 YES, COUNT ME IN →</a>
+          {/* <a className="home-quote-cta" href={withBase("/register")}>🏏 YES, COUNT ME IN →</a> */}
           <div className="home-quote-credit">D2P · DPL 2026 · DIGITATE PREMIER LEAGUE · {hasSupabaseConfig ? 'CONNECTED' : 'DEMO MODE'}</div>
         </div>
       </main>
