@@ -81,6 +81,9 @@ export default function App() {
   const mins = Math.floor((secondsLeft % 3600) / 60);
   const secs = secondsLeft % 60;
   const time = (value: number) => String(value).padStart(2, '0');
+  // Kept for the temporarily-disabled registration/hero-panel JSX below.
+  void withBase; void ElectricBorder; void Magnet;
+  void spotsLeft; void meterWidth; void days; void hours; void mins; void secs; void time;
   const championNum = Number(championLabel);
   const championRaw = Number.isNaN(championNum) ? championLabel : undefined;
   const tapeItems = [

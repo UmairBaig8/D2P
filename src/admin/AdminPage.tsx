@@ -535,8 +535,7 @@ function TeamsTab() {
       .select('squad_size')
       .eq('id', 1)
       .single()
-      .then(({ data }) => setSquadSize(data?.squad_size ?? SQUAD_SIZE))
-      .catch(() => undefined);
+      .then(({ data }) => setSquadSize(data?.squad_size ?? SQUAD_SIZE), () => undefined);
   };
 
   useEffect(reload, []);
