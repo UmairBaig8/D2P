@@ -440,7 +440,7 @@ function TeamsPanel({
           const left = team.budget - team.spent;
           const isHighest = bid?.team_id === team.team_id;
           const isFull = team.squad >= squadSize;
-          const inRange = left > floor;
+          const inRange = bid ? left > floor : left >= floor;
           const low = !isHighest && !isFull && team.budget > 0 && left / team.budget < 0.15;
           const squadCount = Math.min(squadSize, Math.max(0, team.squad || 0));
           const maxBid = Math.max(0, left - Math.max(0, squadSize - squadCount) * basePrice);

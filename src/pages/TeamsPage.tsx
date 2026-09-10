@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Crown } from 'lucide-react';
 import SiteHeader from '@/components/SiteHeader';
 import { useTheme } from '@/lib/useTheme';
 import { fetchTeamsList, type TeamRow } from '@/lib/site';
@@ -39,7 +40,7 @@ export default function TeamsPage() {
               const spent = auctionTeam?.spent ?? 0;
               return (
                 <Link className={`team-overview-card ${team.theme}${team.champion ? ' champion' : ''}`} to={`/teams/${team.code}`} key={team.code}>
-                  <div className="team-overview-banner" style={{ backgroundImage: `url(${resolveAsset(TEAM_HEADERS[team.code] ?? team.icon_url)})` }} role="img" aria-label={`${team.name} team banner`}><div className="team-overview-scrim" /><div className="team-overview-logo"><img src={resolveAsset(team.icon_url)} alt="" /></div><div className="team-overview-index">TEAM {String(index + 1).padStart(2, '0')} · {team.code}</div></div>
+                  <div className="team-overview-banner" style={{ backgroundImage: `url(${resolveAsset(TEAM_HEADERS[team.code] ?? team.icon_url)})` }} role="img" aria-label={`${team.name} team banner`}><div className="team-overview-scrim" />{team.champion && <span className="team-champion" title="DPL 2025 Champions" aria-label="DPL 2025 Champions"><Crown /></span>}<div className="team-overview-logo"><img src={resolveAsset(team.icon_url)} alt="" /></div><div className="team-overview-index">TEAM {String(index + 1).padStart(2, '0')} · {team.code}</div></div>
                   <div className="team-overview-body"><div className="team-overview-name">{team.name}</div><div className="team-overview-leads"><span>OWNER <b>{team.owner || 'TBD'}</b></span><span>CAPTAIN <b>{team.captain || 'TBD'}</b></span></div><div className="team-overview-footer"><b>{team.player_count}/{team.squad_size ?? 15} PLAYERS</b>{auction ? <b>{formatCompact(Math.max(0, budget - spent))} LEFT</b> : <b>VIEW TEAM →</b>}</div></div>
                 </Link>
               );

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Crown } from 'lucide-react';
 import SiteHeader from '@/components/SiteHeader';
 import { useTheme } from '@/lib/useTheme';
 import { fetchTeamRoster, fetchTeamsList, type TeamRosterPlayer, type TeamRow } from '@/lib/site';
@@ -78,7 +79,7 @@ export default function TeamPage() {
         ) : (
           <>
             <section className="team-detail-hero">
-              <div className="team-detail-banner" style={{ backgroundImage: `url(${resolveAsset(TEAM_HEADERS[team.code] ?? team.icon_url)})` }} role="img" aria-label={`${team.name} team banner`}><div className="team-detail-banner-scrim" /><div className="team-detail-banner-copy"><div className="team-detail-logo"><img src={resolveAsset(team.icon_url)} alt="" /></div><div><span>{team.code} · DPL 2026{team.champion ? ' · DEFENDING CHAMPIONS' : ''}</span><h1>{team.name}</h1></div></div><div className="team-detail-banner-leaders">{['owner', 'co_owner', 'captain'].map((role) => { const leader = leaders.find((player) => player.role === role); return leader ? <div className="team-detail-banner-leader" key={leader.id}><div className="team-detail-banner-leader-avatar">{leader.photo_url ? <img src={leader.photo_url} alt="" /> : initials(leader.name)}</div><div><span>{roleLabel(role)}</span><b>{leader.name}</b></div></div> : null; })}</div></div>
+              <div className="team-detail-banner" style={{ backgroundImage: `url(${resolveAsset(TEAM_HEADERS[team.code] ?? team.icon_url)})` }} role="img" aria-label={`${team.name} team banner`}><div className="team-detail-banner-scrim" />{team.champion && <span className="team-champion team-champion--hero" title="DPL 2025 Champions" aria-label="DPL 2025 Champions"><Crown /></span>}<div className="team-detail-banner-copy"><div className="team-detail-logo"><img src={resolveAsset(team.icon_url)} alt="" /></div><div><span>{team.code} · DPL 2026{team.champion ? ' · DEFENDING CHAMPIONS' : ''}</span><h1>{team.name}</h1></div></div><div className="team-detail-banner-leaders">{['owner', 'co_owner', 'captain'].map((role) => { const leader = leaders.find((player) => player.role === role); return leader ? <div className="team-detail-banner-leader" key={leader.id}><div className="team-detail-banner-leader-avatar">{leader.photo_url ? <img src={leader.photo_url} alt="" /> : initials(leader.name)}</div><div><span>{roleLabel(role)}</span><b>{leader.name}</b></div></div> : null; })}</div></div>
             </section>
             <section className="team-detail-metrics" aria-label="Team analytics">
               <div><span>ROSTER</span><b>{players.length}/{squadSize}</b><small>{squadSize - players.length} open places</small></div>

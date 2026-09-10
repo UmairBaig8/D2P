@@ -593,8 +593,10 @@ function StagePanel({ session, state, current, currentBid, players, teams, tiers
 
   const poolPlayers = useMemo(() => players.filter((p) => p.status === 'pool').sort((a, b) => a.lot_order - b.lot_order), [players]);
   const floor = Math.max(currentBid?.amount ?? 0, current?.base_price ?? 0, 0);
+  const hasBid = Boolean(currentBid);
   const ladder = useMemo(() => bidLadder(floor, tiers, 8), [floor, tiers]);
-  const minNext = ladder[0] ?? floor + incrementFor(floor, tiers);
+  // Opening bid may equal the base price; once a bid exists it must be outbid.
+  const minNext = hasBid ? (ladder[0] ?? floor + incrementFor(floor, tiers)) : floor;
   const staged = Number(amount) || minNext;
   const squadSize = state?.squad_size ?? 11;
   const leaderId = currentBid?.team_id ?? null;
@@ -633,7 +635,7 @@ function StagePanel({ session, state, current, currentBid, players, teams, tiers
 
   const teamBalance = (team: AuctionAdminState['teams'][number]) => team.budget - team.spent;
   const canTeamBid = (team: AuctionAdminState['teams'][number]) =>
-    Boolean(live && current) && team.squad < squadSize && teamBalance(team) > floor && !quotaBlocksMale(team);
+    Boolean(live && current) && team.squad < squadSize && teamBalance(team) >= floor && !quotaBlocksMale(team);
   // How many teams can actually afford (and are allowed to) bid a given amount.
   const affordableCount = (value: number) =>
     teams.filter((t) => teamBalance(t) >= value && t.squad < squadSize && (currentIsFemale || (squadSize - t.squad - 1) >= femaleNeed(t))).length;
@@ -641,7 +643,8 @@ function StagePanel({ session, state, current, currentBid, players, teams, tiers
   const bidWith = async (team: AuctionAdminState['teams'][number], value: string | number) => {
     if (!live || !current) { toast.error('No lot on the stage.'); return; }
     const amt = Number(value) || minNext;
-    if (amt <= floor) { toast.error(`Bid must exceed ${formatInr(floor)}.`); return; }
+    const belowMin = hasBid ? amt <= floor : amt < floor;
+    if (belowMin) { toast.error(hasBid ? `Bid must exceed ${formatInr(floor)}.` : `Bid must be at least ${formatInr(floor)}.`); return; }
     if (team.squad >= squadSize) { toast.error(`${team.code} squad is full (${squadSize}).`); return; }
     if (quotaBlocksMale(team)) { toast.error(`${team.code} must still sign ${femaleNeed(team)} female player(s).`); return; }
     if (amt > teamBalance(team)) { toast.error(`Budget exceeded — ${formatCompact(teamBalance(team))} left.`); return; }
@@ -840,11 +843,11 @@ function StagePanel({ session, state, current, currentBid, players, teams, tiers
               </div>
               <Input
                 type="number"
-                min={floor + 1}
+                min={floor}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="ml-auto h-8 w-28 tabular-nums"
-                placeholder={`min ${floor + 1}`}
+                placeholder={`min ${floor}`}
               />
               <Button size="sm" variant="outline" className="h-8" disabled={busy} onClick={() => handleExtend(15)}><TimerReset /> +15s</Button>
               <Button size="sm" variant="outline" className="h-8" disabled={busy} onClick={() => handleExtend(30)}><TimerReset /> +30s</Button>
