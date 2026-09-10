@@ -1379,10 +1379,6 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 .la-progress-head b{font:900 italic clamp(14px,1.3vw,20px)/1 'Barlow Condensed';color:#ffd75e}
 .la-progress-head em{font-style:normal;font:800 clamp(9px,.75vw,12px) Inter;color:#7d93a5;letter-spacing:1px}
 
-/* purse progress bar (team cards) */
-.la-pbar{display:block;width:100%;height:4px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
-.la-pbar span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#16c79a,#0fd8c4);transition:width .5s ease}
-.la-pbar.big{height:6px}
 .la-data-col:nth-child(1){grid-area:hist}
 .la-data-col:nth-child(2){grid-area:act}
 
@@ -1442,7 +1438,6 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 .la-tcard-metric{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:10px;background:var(--card-tile);border:1px solid var(--card-tile-border);min-width:0}
 .la-tcard-metric span{font:800 clamp(7px,.55vw,9px) Inter;letter-spacing:1.4px;color:var(--card-ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .la-tcard-metric b{font:900 italic clamp(16px,1.5vw,22px)/1 'Barlow Condensed';font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--card-ink)}
-.la-tcard .la-pbar{background:var(--card-track)}
 .la-tcard .la-tcard-line{color:var(--card-ink-soft)}
 .la-tcard .la-tcard-line b{color:var(--card-ink)}
 .la-tcard .la-sq-dot{background:var(--card-track);border-color:var(--card-line)}
@@ -1644,35 +1639,69 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 }
 
 /* Rolling Broadcast Ticker */
-.la-ticker-wrap {
+.auction-page.live-auction footer.la-ticker-wrap {
+  --la-ticker-bg: rgba(7, 14, 26, 0.98);
+  --la-ticker-bg-end: rgba(13, 26, 44, 0.98);
   width: 100%;
   overflow: hidden;
-  background: rgba(6, 12, 22, 0.95);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 8px 0;
+  background: linear-gradient(90deg, var(--la-ticker-bg), var(--la-ticker-bg-end));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-top: 1px solid rgba(9, 201, 216, 0.22);
+  padding: 4px 0;
+  margin-top: auto;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
   gap: 16px;
   position: relative;
   z-index: 20;
+  text-align: left;
 }
 .la-ticker-tag {
-  flex: none;
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  white-space: nowrap;
   background: linear-gradient(90deg, #ff4b6e, #d6306b);
   color: #fff;
-  font: 900 10px Inter;
-  letter-spacing: 2px;
-  padding: 4px 12px;
+  font: 900 9px Inter;
+  letter-spacing: 1.6px;
+  padding: 3px 10px;
   border-radius: 4px;
-  margin-left: 14px;
   box-shadow: 0 0 10px rgba(255, 75, 110, 0.5);
+}
+.la-ticker-tag::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  background: linear-gradient(90deg, var(--la-ticker-bg), transparent);
+  pointer-events: none;
+}
+.auction-page.live-auction footer.la-ticker-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 56px;
+  background: linear-gradient(90deg, transparent, var(--la-ticker-bg-end));
+  pointer-events: none;
+  z-index: 1;
 }
 .la-ticker-track {
   display: flex;
-  gap: 32px;
+  flex: none;
+  width: max-content;
+  gap: 28px;
   white-space: nowrap;
   animation: marqueeTicker 28s linear infinite;
-  font: 800 11px Inter;
+  font: 800 10px Inter;
   color: #cfe0ef;
   letter-spacing: 0.8px;
 }
@@ -1693,6 +1722,24 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 }
 .la-ticker-item span {
   color: #09c9d8;
+}
+.la-ticker-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 215, 94, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  flex: none;
+}
+.la-ticker-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 8px Inter;
+  font-style: normal;
+  color: #ffd75e;
+  letter-spacing: 0.5px;
 }
 
 /* Header Buttons for Broadcast controls */
@@ -2117,8 +2164,11 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 .auction-page.live-auction:not(.dark) .la-drawer-item time{color:#6c8296}
 
 /* ticker */
-.auction-page.live-auction:not(.dark) .la-ticker-wrap{background:rgba(255,255,255,.9);border-top-color:rgba(20,45,70,.12)}
+.auction-page.live-auction:not(.dark) footer.la-ticker-wrap{--la-ticker-bg:#ffffff;--la-ticker-bg-end:#eef4fb;background:linear-gradient(90deg,#ffffff,#eef4fb);border-top-color:rgba(20,45,70,.12)}
 .auction-page.live-auction:not(.dark) .la-ticker-track{color:#334556}
+.auction-page.live-auction:not(.dark) .la-ticker-item span{color:#0e7490}
+.auction-page.live-auction:not(.dark) .la-ticker-avatar{border-color:rgba(180,83,9,.4);background:rgba(20,45,70,.06)}
+.auction-page.live-auction:not(.dark) .la-ticker-avatar-fallback{color:#b45309}
 
 /* =====================================================================
    AUCTION BOARD — final responsive composition
@@ -2338,3 +2388,19 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 .la-rcard-unsold{font:900 12px Inter;letter-spacing:1.4px;color:#ff4b6e}
 .la-results-empty{font:700 12px Inter;color:#7d93a5;padding:26px 4px;text-align:center;border:1px dashed rgba(255,255,255,.14);border-radius:16px}
 .auction-page[data-reduced] .la-rcard::after{display:none}
+
+/* ===== Team card status badges — solid dark pill for contrast on bright team colours ===== */
+.auction-page.live-auction .la-tcard .shiny-badge{
+  color:#f3f7fb;
+  background:rgba(7,20,38,.78);
+  border-color:rgba(255,255,255,.42);
+  box-shadow:none;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+.auction-page.live-auction .la-tcard .shiny-badge .shiny-badge-shimmer{opacity:.5}
+.auction-page.live-auction .la-tcard .shiny-badge--cyan{color:#5ee6f0}
+.auction-page.live-auction .la-tcard .shiny-badge--gold{color:#ffd75e}
+.auction-page.live-auction .la-tcard .shiny-badge--green{color:#3ddc97}
+.auction-page.live-auction .la-tcard .shiny-badge--red{color:#ff8a95}
+.auction-page.live-auction .la-tcard .shiny-badge--purple{color:#c4b5fd}

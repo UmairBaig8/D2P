@@ -497,18 +497,6 @@ function TeamsPanel({
                 </div>
               </div>
 
-              {/* Purse Progress Bar */}
-              <div className="la-pbar">
-                <span
-                  style={{
-                    width: `${team.budget > 0 ? Math.max(0, Math.min(100, (left / team.budget) * 100)) : 0}%`,
-                    background: low
-                      ? 'linear-gradient(90deg, #ff8a3c, #ffd75e)'
-                      : 'linear-gradient(90deg, #16c79a, #0fd8c4)',
-                  }}
-                />
-              </div>
-
               {/* Visual Squad Slot Matrix */}
               <div className="la-tcard-sq">
                 <div className="la-tcard-line">
@@ -1118,6 +1106,37 @@ export default function AuctionPage() {
   const totalLots = results.length + (state?.pool_count ?? 0);
   const progressPct = totalLots > 0 ? Math.round((results.length / totalLots) * 100) : 0;
 
+  // Live ticker content: recently sold players. Falls back to the current lot
+  // so the feed never looks empty before the first sale.
+  const recentSold = results.filter((row) => row.status === 'sold').slice(-8).reverse();
+  const tickerItems: React.ReactNode[] =
+    recentSold.length > 0
+      ? recentSold.map((row, index) => (
+          <React.Fragment key={`sold-${row.lot_order}-${index}`}>
+            {row.photo_url ? (
+              <img className="la-ticker-avatar" src={row.photo_url} alt={row.player_name} />
+            ) : (
+              <i className="la-ticker-avatar la-ticker-avatar-fallback">{initials(row.player_name)}</i>
+            )}
+            <span>{row.source === 'retained' ? 'RETAINED' : 'SOLD'}</span>
+            <b>{row.player_name.toUpperCase()}</b>
+            <span>
+              {row.team_code ? `→ ${row.team_code}` : '→ UNSOLD'} · {formatCompact(row.sold_price ?? 0)}
+            </span>
+          </React.Fragment>
+        ))
+      : [
+          <React.Fragment key="cur-lot">
+            <span>LOT #{player?.lot_order ?? '—'}</span>
+            <b>{player ? player.name.toUpperCase() : 'DRAWING IN PROGRESS'}</b>
+            {player && <span>{player.player_type} · BASE {formatCompact(player.base_price)}</span>}
+          </React.Fragment>,
+          <React.Fragment key="cur-bid">
+            <span>CURRENT HIGH BIDDER</span>
+            <b>{bid ? `${bid.team_code} @ ${formatInr(bid.amount)}` : 'WAITING FOR OPENING BID'}</b>
+          </React.Fragment>,
+        ];
+
   // Demo auto-sell: when the lot timer expires, close the lot to the current
   // highest bidder and bring up the next player so the SOLD reveal fires.
   useEffect(() => {
@@ -1433,36 +1452,17 @@ export default function AuctionPage() {
             <Radio size={12} style={{ display: 'inline', marginRight: 4 }} /> LIVE FEED
           </div>
           <div className="la-ticker-track">
-            <div className="la-ticker-item">
-              {player ? (
-                <>
-                  <span>LOT #{player.lot_order}</span> <b>{player.name.toUpperCase()}</b> ({player.player_type}) · BASE{' '}
-                  {formatCompact(player.base_price)}
-                </>
-              ) : (
-                <>
-                  <span>NEXT LOT</span> <b>DRAWING IN PROGRESS</b>
-                </>
-              )}
-            </div>
-            <div className="la-ticker-item">
-              {player ? (
-                <>
-                  <span>CURRENT HIGH BIDDER</span>{' '}
-                  <b>{bid ? `${bid.team_code} @ ${formatInr(bid.amount)}` : 'WAITING FOR OPENING BID'}</b>
-                </>
-              ) : (
-                <>
-                  <span>COMMITTEE</span> <b>SELECTING NEXT PLAYER</b>
-                </>
-              )}
-            </div>
-            <div className="la-ticker-item">
-              <span>DPL 2026 LEAGUE PURSE</span> <b>{formatInr(10000000)} CR PER TEAM</b>
-            </div>
-            <div className="la-ticker-item">
-              <span>BROADCAST STREAM</span> <b>DIGITATE PREMIER LEAGUE</b>
-            </div>
+            {tickerItems.length === 0 ? (
+              <div className="la-ticker-item">
+                <span>NO SALES YET</span> <b>AWAITING FIRST LOT</b>
+              </div>
+            ) : (
+              [...tickerItems, ...tickerItems].map((node, index) => (
+                <div className="la-ticker-item" key={`ticker-${index}`}>
+                  {node}
+                </div>
+              ))
+            )}
           </div>
         </footer>
       )}
