@@ -61,3 +61,8 @@
 
 
 
+
+## Team AVG BUY excludes free leaders (2026-09-10)
+- [Root Cause] TeamPage AVG BUY averaged ALL sold `auction.results` for the team, including `source='retained'` free leaders (owner/co_owner/captain seeded at `sold_price=0` by `retention_role_pricing.sql:31`), dragging the average down. Label also claimed "auctioned players" while counting retained lots.
+- [Surgical Fix] `src/pages/TeamPage.tsx`: build `freeLeaderKeys` from roster roles (owner/co_owner/captain), filter those names out of `results`; wrapped `results` in `useMemo`. Label now "N paid players".
+- [Gotcha] Auction results carry no role field — leader exclusion matches `result.player_name` to roster `players[].role` via `playerKey()`. Kept retained regulars (they pay `retention_price`). If a leader role is changed after results load, memo deps (`players`) handle re-compute.
