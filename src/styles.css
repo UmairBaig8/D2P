@@ -1396,7 +1396,7 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
    PRODUCTION LAYOUT — single viewport, no scroll, coherent grid
    ===================================================================== */
 .auction-page.live-auction{height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column}
-.auction-page.live-auction>header{flex:none}
+.auction-page.live-auction>header{flex:none;position:sticky;top:0;z-index:90}
 .live-auction .la-main{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;width:min(1760px,calc(100% - 28px));margin:0 auto;padding:10px 0 12px;box-sizing:border-box;overflow:hidden}
 .la-top{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0}
 .la-stage{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
