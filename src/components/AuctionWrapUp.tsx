@@ -137,7 +137,7 @@ export default function AuctionWrapUp({ results, teams }: { results: AuctionResu
                   <span className="la-wbar">
                     <i style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, #ffffffaa)` }} />
                   </span>
-                  <span className="la-wval">₹{formatCompact(r.sold_price ?? 0)}</span>
+                  <span className="la-wval">{formatCompact(r.sold_price ?? 0)}</span>
                 </li>
               );
             })}
@@ -159,12 +159,12 @@ export default function AuctionWrapUp({ results, teams }: { results: AuctionResu
                   </span>
                   <span className="la-wname">
                     <b>{t.name}</b>
-                    <span>{t.code} · ₹{formatCompact(left)} LEFT</span>
+                    <span>{t.code} · {formatCompact(left)} LEFT</span>
                   </span>
                   <span className="la-wbar">
                     <i style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, #ffffffaa)` }} />
                   </span>
-                  <span className="la-wval">₹{formatCompact(t.spent ?? 0)}</span>
+                  <span className="la-wval">{formatCompact(t.spent ?? 0)}</span>
                 </li>
               );
             })}
@@ -177,9 +177,9 @@ export default function AuctionWrapUp({ results, teams }: { results: AuctionResu
         <Tile title="🏅 The Auction Awards" hint="totally official">
           <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
             <Award emoji="💸" title="Deepest Pockets" value={d.deepest.map((t) => t.code).join(' & ') || '—'} note="biggest spenders" />
-            <Award emoji="🚀" title="Biggest Splash" value={d.topBuy ? `${d.topBuy.player_name} · ₹${formatCompact(d.topBuy.sold_price ?? 0)}` : '—'} note="single-buy record" />
+            <Award emoji="🚀" title="Biggest Splash" value={d.topBuy ? `${d.topBuy.player_name} · ${formatCompact(d.topBuy.sold_price ?? 0)}` : '—'} note="single-buy record" />
             <Award emoji="🛒" title="Bargain Bin Boss" value={`${d.bargainTeam.code} (${d.bargainCount(d.bargainTeam.code)}× ₹${d.minPrice})`} note="base-price hoarder" />
-            <Award emoji="🧊" title="Frugal Flex" value={`${d.frugal.code} · ₹${formatCompact(d.frugal.budget - d.frugal.spent)} left`} note="most money unspent" />
+            <Award emoji="🧊" title="Frugal Flex" value={`${d.frugal.code} · ${formatCompact(d.frugal.budget - d.frugal.spent)} left`} note="most money unspent" />
             <Award emoji="👑" title="Full House" value={d.fullHouse.length ? d.fullHouse.map((t) => t.code).join(', ') : '—'} note="16 on the sheet" />
             <Award emoji="🎲" title="Chai Budget Heroes" value={`${d.sold.filter((r) => (r.sold_price ?? 0) === d.minPrice).length} players @ ₹${d.minPrice}`} note="the ₹20 club" />
           </div>
