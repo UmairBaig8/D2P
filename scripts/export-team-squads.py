@@ -10,10 +10,14 @@ Data source: the live Supabase project (anon key, public RPCs) -- canonical for 
     - /rest/v1/settings       -> base price + purse
 
 Pipeline: live data + player photos + QR codes -> single HTML -> headless Chrome
-        -> public/DPL-2026-Team-Squads.pdf  (cover + summary + 10 team pages; served by the app)
+        -> public/DPL-2026-Team-Squads.pdf        (dark theme)
+        -> public/DPL-2026-Team-Squads-Light.pdf  (light theme)
+        (cover + summary + 10 team pages; served by the app)
 
 Usage:
-    python3 scripts/export-team-squads.py
+    python3 scripts/export-team-squads.py                # both themes
+    python3 scripts/export-team-squads.py --theme light  # light only
+    python3 scripts/export-team-squads.py --theme dark   # dark only
 """
 
 from __future__ import annotations
@@ -33,7 +37,9 @@ ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public"
 PHOTO_CACHE = Path("/tmp/dpl-player-avatars")
 OUT_PDF = PUBLIC / "DPL-2026-Team-Squads.pdf"
+OUT_PDF_LIGHT = PUBLIC / "DPL-2026-Team-Squads-Light.pdf"
 OUT_HTML = Path("/tmp/dpl-team-squads.html")
+OUT_HTML_LIGHT = Path("/tmp/dpl-team-squads-light.html")
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 SITE_BASE = "https://umairbaig8.github.io/D2P"  # team page -> {SITE_BASE}/teams/{code}
 
@@ -116,8 +122,8 @@ def avatar_data_uri(photo_url: str | None, name: str) -> str | None:
             print(f"  ! photo {name}: {exc}", file=sys.stderr)
             return None
     try:
-        from PIL import Image  # lazy: only needed for photos
-        img = Image.open(cache).convert("RGB")
+        from PIL import Image, ImageOps  # lazy: only needed for photos
+        img = ImageOps.exif_transpose(Image.open(cache)).convert("RGB")  # honor EXIF orientation
         side = min(img.size)
         left = (img.width - side) // 2
         top = (img.height - side) // 2
@@ -513,6 +519,98 @@ footer { flex: 0 0 auto; display: flex; align-items: center; justify-content: sp
 .fteam { text-align: right; }
 """
 
+# Light theme: overrides the dark palette above. Applied by adding `class="light"`
+# to <body>; every rule below is scoped to body.light so the dark theme is untouched.
+LIGHT_CSS = """
+body.light { background: #e9edf3; color: #101828; }
+body.light .page { background: linear-gradient(180deg,#ffffff 0%,#f4f6fa 100%); }
+
+/* cover */
+body.light .cover { background: radial-gradient(120% 80% at 50% -10%, #dbe6f7 0%, #eef2f8 55%, #f7f9fc 100%); }
+body.light .cv-glow { opacity: .32; }
+body.light .cv-eyebrow { color: #5b6b82; }
+body.light .cv-title { color: #0b1220; }
+body.light .cv-title em { color: #c98a00; }
+body.light .cv-sub { color: #52627a; }
+body.light .cv-logo { background: rgba(15,23,42,.03); box-shadow: 0 6px 18px rgba(15,23,42,.14); }
+body.light .cv-stats div { background: #fff; border: 1px solid rgba(15,23,42,.1); box-shadow: 0 2px 8px rgba(15,23,42,.05); }
+body.light .cv-stats span { color: #5b6b82; }
+body.light .cv-stats b { color: #0b1220; }
+body.light .cv-foot { color: #8a94a6; }
+
+/* summary */
+body.light .sm-head { border-bottom-color: rgba(15,23,42,.14); }
+body.light .sm-head .eyebrow { color: #c98a00; }
+body.light .sm-head h2 { color: #0b1220; }
+body.light .sm-total { color: #0b1220; background: #fff; border: 1px solid rgba(15,23,42,.12); }
+body.light .sm-col h3 { color: #5b6b82; }
+body.light .ct-row { background: #fff; border: 1px solid rgba(15,23,42,.09); border-left: 2.5px solid var(--accent); box-shadow: 0 1px 4px rgba(15,23,42,.05); }
+body.light .ct-num { color: #9aa5b5; }
+body.light .ct-name b { color: #101828; }
+body.light .ct-name small { color: #5b6b82; }
+body.light .ct-spent b { color: #0b1220; }
+body.light .ct-spent small { color: #6b7787; }
+body.light .tb-list li { background: #fff; border: 1px solid rgba(15,23,42,.09); box-shadow: 0 1px 4px rgba(15,23,42,.05); }
+body.light .tb-rank { color: #c98a00; }
+body.light .tb-face { border: 1.5px solid rgba(15,23,42,.15); }
+body.light .tb-name b { color: #101828; }
+body.light .tb-name small { color: #5b6b82; }
+body.light .tb-price { color: #0b1220; }
+
+/* team hero: photo band fades into the light page */
+body.light .hero .scrim { background:
+  linear-gradient(180deg, rgba(255,255,255,.72) 0%, rgba(255,255,255,0) 16%),
+  linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.06) 55%, rgba(255,255,255,.92) 100%),
+  linear-gradient(90deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 55%, rgba(255,255,255,.22) 100%); }
+body.light .hero-top { color: #0b1220; }
+body.light .logo { background: rgba(255,255,255,.72); border: 1px solid rgba(15,23,42,.12); box-shadow: 0 8px 22px rgba(15,23,42,.18); }
+body.light .title h1 { color: #0b1220; text-shadow: 0 2px 12px rgba(255,255,255,.7); }
+body.light .lt b { color: #0b1220; }
+body.light .champ { color: #c98a00; }
+
+/* stats */
+body.light .stat { background: #fff; border: 1px solid rgba(15,23,42,.09); border-top: 2px solid var(--accent); box-shadow: 0 2px 8px rgba(15,23,42,.05); }
+body.light .stat span { color: #5b6b82; }
+body.light .stat b { color: #0b1220; }
+body.light .stat small { color: #6b7787; }
+
+/* squad table */
+body.light .eyebrow { color: #0b1220; }
+body.light .chip { color: #3f4b5e; background: rgba(15,23,42,.04); border: 1px solid rgba(15,23,42,.09); }
+body.light thead th { color: #5b6b82; }
+body.light tbody tr { border-bottom: 1px solid rgba(15,23,42,.08); }
+body.light tbody tr.lead { background: rgba(15,23,42,.03); }
+body.light td.slot { color: #9aa5b5; }
+body.light .face { border: 1.5px solid rgba(15,23,42,.15); background: rgba(15,23,42,.06); }
+body.light .face-init { color: #3f4b5e; }
+body.light .pinfo b { color: #101828; }
+body.light .pinfo small { color: #5b6b82; }
+body.light .pinfo .rookie { color: #7b8798; }
+body.light .price { color: #0b1220; }
+body.light .price.free { color: #9aa5b5; }
+body.light .delta.even { color: #6b7787; }
+body.light .tag.player, body.light .tag.retained { background: rgba(15,23,42,.08); color: #3f4b5e; }
+body.light .tag.co_owner { background: #bfe4ff; color: #0b1220; }
+
+/* footer */
+body.light footer { color: #7b8798; }
+body.light .qrlabel { color: #5b6b82; }
+"""
+
+
+def render_html(pages: list[str], theme: str) -> str:
+    body_class = " class='light'" if theme == "light" else ""
+    return ("<!doctype html><html><head><meta charset='utf-8'><title>DPL 2026 · Team Squads</title>"
+            f"<style>{CSS}{LIGHT_CSS if theme == 'light' else ''}</style></head>"
+            f"<body{body_class}>{''.join(pages)}</body></html>")
+
+
+def render_pdf(html_path: Path, out_pdf: Path) -> None:
+    subprocess.run(
+        [CHROME, "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
+         f"--print-to-pdf={out_pdf}", html_path.as_uri()],
+        check=True, capture_output=True)
+
 
 def main() -> int:
     url, key = env()
@@ -533,16 +631,17 @@ def main() -> int:
               for i, team in enumerate(teams, start=1)]
 
     PUBLIC.mkdir(exist_ok=True)
-    OUT_HTML.write_text(
-        "<!doctype html><html><head><meta charset='utf-8'><title>DPL 2026 · Team Squads</title>"
-        f"<style>{CSS}</style></head><body>{''.join(pages)}</body></html>", encoding="utf-8")
-    print(f"  html: {OUT_HTML} ({OUT_HTML.stat().st_size / 1e6:.1f} MB)")
-
-    subprocess.run(
-        [CHROME, "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
-         f"--print-to-pdf={OUT_PDF}", OUT_HTML.as_uri()],
-        check=True, capture_output=True)
-    print(f"  pdf : {OUT_PDF} ({OUT_PDF.stat().st_size / 1e6:.1f} MB, {len(pages)} pages)")
+    theme = "dark"
+    if "--theme" in sys.argv:
+        theme = sys.argv[sys.argv.index("--theme") + 1]
+    themes = ["dark", "light"] if theme == "both" else [theme]
+    for t in themes:
+        out = OUT_PDF if t == "dark" else OUT_PDF_LIGHT
+        html_path = OUT_HTML if t == "dark" else OUT_HTML_LIGHT
+        html_path.write_text(render_html(pages, t), encoding="utf-8")
+        print(f"  html: {html_path} ({html_path.stat().st_size / 1e6:.1f} MB)")
+        render_pdf(html_path, out)
+        print(f"  pdf : {out} ({out.stat().st_size / 1e6:.1f} MB, {len(pages)} pages)")
     return 0
 
 

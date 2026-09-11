@@ -45,7 +45,7 @@ const QUIPS = [
   'Game on. But first, ice packs for the hamstrings and the bank accounts.',
 ];
 
-export default function AuctionWrapUp({ results, teams }: { results: AuctionResultRow[]; teams: AuctionTeamView[] }) {
+export default function AuctionWrapUp({ results, teams, dark }: { results: AuctionResultRow[]; teams: AuctionTeamView[]; dark: boolean }) {
   const d = useMemo(() => {
     const sold = results.filter((r) => r.status === 'sold' && r.source === 'auction' && (r.sold_price ?? 0) > 0);
     const top = [...sold].sort((a, b) => (b.sold_price ?? 0) - (a.sold_price ?? 0)).slice(0, 8);
@@ -98,8 +98,8 @@ export default function AuctionWrapUp({ results, teams }: { results: AuctionResu
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
               <a
                 className="la-wrap-dl"
-                href={resolveAsset('/DPL-2026-Team-Squads.pdf')}
-                download="DPL-2026-Team-Squads.pdf"
+                href={resolveAsset(dark ? '/DPL-2026-Team-Squads.pdf' : '/DPL-2026-Team-Squads-Light.pdf')}
+                download={dark ? 'DPL-2026-Team-Squads.pdf' : 'DPL-2026-Team-Squads-Light.pdf'}
               >
                 <Download size={13} /> Squad PDF
               </a>

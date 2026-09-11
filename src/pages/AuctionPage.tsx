@@ -1252,7 +1252,7 @@ export default function AuctionPage() {
           </div>
         ) : !live ? (
           showWrapUp ? (
-            <AuctionWrapUp results={results} teams={state.teams} />
+            <AuctionWrapUp results={results} teams={state.teams} dark={dark} />
           ) : (
           <div className="la-countdown-only">
             {countdown != null ? (
@@ -1344,9 +1344,9 @@ export default function AuctionPage() {
 
                 <a
                   className="la-ctrl-btn"
-                  href={resolveAsset('/DPL-2026-Team-Squads.pdf')}
-                  download="DPL-2026-Team-Squads.pdf"
-                  title="Download team-wise squad PDF"
+                  href={resolveAsset(dark ? '/DPL-2026-Team-Squads.pdf' : '/DPL-2026-Team-Squads-Light.pdf')}
+                  download={dark ? 'DPL-2026-Team-Squads.pdf' : 'DPL-2026-Team-Squads-Light.pdf'}
+                  title={`Download team-wise squad PDF (${dark ? 'dark' : 'light'} theme)`}
                 >
                   <Download size={14} />
                   <span>SQUAD PDF</span>
