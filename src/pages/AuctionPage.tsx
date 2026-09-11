@@ -1351,6 +1351,16 @@ export default function AuctionPage() {
                   <Download size={14} />
                   <span>SQUAD PDF</span>
                 </a>
+
+                <a
+                  className="la-ctrl-btn"
+                  href={resolveAsset('/DPL-2026-Team-Logos.zip')}
+                  download="DPL-2026-Team-Logos.zip"
+                  title="Download team logos (PNG zip)"
+                >
+                  <Download size={14} />
+                  <span>TEAM LOGOS</span>
+                </a>
               </div>
             </div>
 

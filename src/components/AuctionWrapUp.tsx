@@ -95,13 +95,22 @@ export default function AuctionWrapUp({ results, teams }: { results: AuctionResu
             <span className="text-[10px] font-black uppercase tracking-[2px] text-[var(--wrap-ink-faint)]">
               {d.sold.length} sold · {formatCompact(d.totalSpent)} spent
             </span>
-            <a
-              className="la-wrap-dl"
-              href={resolveAsset('/DPL-2026-Team-Squads.pdf')}
-              download="DPL-2026-Team-Squads.pdf"
-            >
-              <Download size={13} /> Squad PDF
-            </a>
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              <a
+                className="la-wrap-dl"
+                href={resolveAsset('/DPL-2026-Team-Squads.pdf')}
+                download="DPL-2026-Team-Squads.pdf"
+              >
+                <Download size={13} /> Squad PDF
+              </a>
+              <a
+                className="la-wrap-dl"
+                href={resolveAsset('/DPL-2026-Team-Logos.zip')}
+                download="DPL-2026-Team-Logos.zip"
+              >
+                <Download size={13} /> Team Logos
+              </a>
+            </div>
           </div>
         </div>
       </section>
