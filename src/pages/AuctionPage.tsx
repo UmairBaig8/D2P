@@ -19,7 +19,7 @@ import NumberTicker from '@/components/ui/NumberTicker';
 import Particles from '@/components/ui/Particles';
 import ShinyBadge from '@/components/ui/ShinyBadge';
 import AuctionWrapUp from '@/components/AuctionWrapUp';
-import { Volume2, VolumeX, Radio, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, Radio, Sparkles, Download } from 'lucide-react';
 
 function initials(name: string): string {
   return name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase();
@@ -1341,6 +1341,16 @@ export default function AuctionPage() {
                   <Sparkles size={14} />
                   <span>{isDemoMode ? 'DEMO BROADCASTING' : 'DEMO MODE'}</span>
                 </button>
+
+                <a
+                  className="la-ctrl-btn"
+                  href={resolveAsset('/DPL-2026-Team-Squads.pdf')}
+                  download="DPL-2026-Team-Squads.pdf"
+                  title="Download team-wise squad PDF"
+                >
+                  <Download size={14} />
+                  <span>SQUAD PDF</span>
+                </a>
               </div>
             </div>
 

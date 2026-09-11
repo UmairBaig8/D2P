@@ -2433,6 +2433,10 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
   --wrap-hero-bg:linear-gradient(120deg,rgba(9,201,216,.20),rgba(135,60,255,.26) 45%,rgba(237,58,168,.22)),rgba(8,11,22,.78);
 }
 
+/* Wrap-up hero download link */
+.la-wrap-dl{display:inline-flex;align-items:center;gap:6px;font:900 10px Inter;letter-spacing:1.2px;text-transform:uppercase;color:var(--wrap-ink);background:var(--wrap-chip);border:1px solid var(--wrap-line);border-radius:99px;padding:7px 14px;transition:transform .15s ease,background .15s ease,border-color .15s ease}
+.la-wrap-dl:hover{transform:translateY(-1px);background:rgba(9,201,216,.14);border-color:rgba(9,201,216,.45)}
+
 /* Full-width leaderboard rows (buys + teams) */
 .la-wtable{display:flex;flex-direction:column;gap:5px;margin-top:10px}
 .la-wrow{display:grid;align-items:center;gap:10px;padding:7px 10px;border-radius:11px;border:1px solid var(--wrap-line);background:var(--wrap-chip);min-width:0}

@@ -10,7 +10,7 @@ Data source: the live Supabase project (anon key, public RPCs) -- canonical for 
     - /rest/v1/settings       -> base price + purse
 
 Pipeline: live data + player photos + QR codes -> single HTML -> headless Chrome
-        -> exports/DPL-2026-Team-Squads.pdf  (cover + summary + 10 team pages)
+        -> public/DPL-2026-Team-Squads.pdf  (cover + summary + 10 team pages; served by the app)
 
 Usage:
     python3 scripts/export-team-squads.py
@@ -30,9 +30,9 @@ from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-EXPORTS = ROOT / "exports"
+PUBLIC = ROOT / "public"
 PHOTO_CACHE = Path("/tmp/dpl-player-avatars")
-OUT_PDF = EXPORTS / "DPL-2026-Team-Squads.pdf"
+OUT_PDF = PUBLIC / "DPL-2026-Team-Squads.pdf"
 OUT_HTML = Path("/tmp/dpl-team-squads.html")
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 SITE_BASE = "https://umairbaig8.github.io/D2P"  # team page -> {SITE_BASE}/teams/{code}
@@ -532,7 +532,7 @@ def main() -> int:
     pages += [team_page(team, squads[team["code"]], base, purse, i, len(teams))
               for i, team in enumerate(teams, start=1)]
 
-    EXPORTS.mkdir(exist_ok=True)
+    PUBLIC.mkdir(exist_ok=True)
     OUT_HTML.write_text(
         "<!doctype html><html><head><meta charset='utf-8'><title>DPL 2026 · Team Squads</title>"
         f"<style>{CSS}</style></head><body>{''.join(pages)}</body></html>", encoding="utf-8")

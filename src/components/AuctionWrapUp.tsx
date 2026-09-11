@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
+import { Download } from 'lucide-react';
 import { NumberTicker } from '@/components/ui/NumberTicker';
 import ShinyBadge from '@/components/ui/ShinyBadge';
 import { Particles } from '@/components/ui/Particles';
@@ -94,6 +95,13 @@ export default function AuctionWrapUp({ results, teams }: { results: AuctionResu
             <span className="text-[10px] font-black uppercase tracking-[2px] text-[var(--wrap-ink-faint)]">
               {d.sold.length} sold · {formatCompact(d.totalSpent)} spent
             </span>
+            <a
+              className="la-wrap-dl"
+              href={resolveAsset('/DPL-2026-Team-Squads.pdf')}
+              download="DPL-2026-Team-Squads.pdf"
+            >
+              <Download size={13} /> Squad PDF
+            </a>
           </div>
         </div>
       </section>
