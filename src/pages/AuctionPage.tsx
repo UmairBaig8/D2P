@@ -18,6 +18,7 @@ import BorderBeam from '@/components/ui/BorderBeam';
 import NumberTicker from '@/components/ui/NumberTicker';
 import Particles from '@/components/ui/Particles';
 import ShinyBadge from '@/components/ui/ShinyBadge';
+import AuctionWrapUp from '@/components/AuctionWrapUp';
 import { Volume2, VolumeX, Radio, Sparkles } from 'lucide-react';
 
 function initials(name: string): string {
@@ -1249,6 +1250,9 @@ export default function AuctionPage() {
             {!online && <p>Connecting to broadcast feed — retrying…</p>}
           </div>
         ) : !live ? (
+          session?.status === 'ended' && results.some((r) => r.status === 'sold' && r.source === 'auction') ? (
+            <AuctionWrapUp results={results} teams={state.teams} />
+          ) : (
           <div className="la-countdown-only">
             {countdown != null ? (
               <CountdownFace
@@ -1265,6 +1269,7 @@ export default function AuctionPage() {
               </div>
             )}
           </div>
+          )
         ) : (
           <>
             {/* Top Broadcast Header */}
