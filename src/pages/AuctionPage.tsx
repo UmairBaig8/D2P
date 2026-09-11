@@ -1104,6 +1104,7 @@ export default function AuctionPage() {
 
   const countdown = live && player ? null : scheduledLeft;
   const results = state?.results ?? [];
+  const showWrapUp = !live && session?.status === 'ended' && results.some((r) => r.status === 'sold' && r.source === 'auction');
   const totalLots = results.length + (state?.pool_count ?? 0);
   const progressPct = totalLots > 0 ? Math.round((results.length / totalLots) * 100) : 0;
 
@@ -1234,7 +1235,7 @@ export default function AuctionPage() {
 
   return (
     <div
-      className={`app auction-page live-auction${dark ? ' dark' : ''}`}
+      className={`app auction-page live-auction${dark ? ' dark' : ''}${showWrapUp ? ' is-wrapped' : ''}`}
       style={{ position: 'relative' }}
       data-reduced={FX_ENABLED ? undefined : ''}
     >
@@ -1242,7 +1243,7 @@ export default function AuctionPage() {
       {FX_ENABLED && <Particles quantity={45} color="#09c9d8" />}
 
       <SiteHeader dark={dark} onToggleTheme={toggleTheme} relative={!live} />
-      <main className="la-main shell" style={{ position: 'relative', zIndex: 10 }}>
+      <main className={`la-main${showWrapUp ? ' la-main--wrap' : ' shell'}`} style={{ position: 'relative', zIndex: 10 }}>
         {!state ? (
           <div className="la-stage-empty">
             <div className="la-stage-empty-badge">⌛</div>
@@ -1250,7 +1251,7 @@ export default function AuctionPage() {
             {!online && <p>Connecting to broadcast feed — retrying…</p>}
           </div>
         ) : !live ? (
-          session?.status === 'ended' && results.some((r) => r.status === 'sold' && r.source === 'auction') ? (
+          showWrapUp ? (
             <AuctionWrapUp results={results} teams={state.teams} />
           ) : (
           <div className="la-countdown-only">

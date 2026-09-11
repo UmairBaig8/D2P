@@ -2404,3 +2404,55 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 .auction-page.live-auction .la-tcard .shiny-badge--green{color:#3ddc97}
 .auction-page.live-auction .la-tcard .shiny-badge--red{color:#ff8a95}
 .auction-page.live-auction .la-tcard .shiny-badge--purple{color:#c4b5fd}
+
+/* Auction wrap-up (session ended) — full width, never clipped */
+.la-main--wrap{overflow:visible;min-height:0;height:auto;width:min(1800px,calc(100% - 24px));padding:4px 0 20px;gap:8px}
+
+/* Wrap-up opts out of the single-viewport lock so the page can scroll. */
+.auction-page.live-auction.is-wrapped{height:auto;min-height:100vh;overflow:visible}
+
+/* =====================================================================
+   AUCTION WRAP-UP — theme-aware surfaces (light default, .dark override)
+   ===================================================================== */
+.la-wrap{
+  --wrap-ink:#0d1b2e;
+  --wrap-ink-soft:#42546a;
+  --wrap-ink-faint:#7d8b99;
+  --wrap-line:rgba(20,45,70,.14);
+  --wrap-chip:rgba(20,45,70,.05);
+  --wrap-card:rgba(255,255,255,.82);
+  --wrap-hero-bg:linear-gradient(120deg,rgba(9,201,216,.16),rgba(135,60,255,.18) 45%,rgba(237,58,168,.16)),rgba(255,255,255,.74);
+}
+.dark .la-wrap{
+  --wrap-ink:#f3f7fb;
+  --wrap-ink-soft:#c7d4df;
+  --wrap-ink-faint:#8fa2b4;
+  --wrap-line:rgba(255,255,255,.1);
+  --wrap-chip:rgba(255,255,255,.05);
+  --wrap-card:rgba(11,18,32,.75);
+  --wrap-hero-bg:linear-gradient(120deg,rgba(9,201,216,.20),rgba(135,60,255,.26) 45%,rgba(237,58,168,.22)),rgba(8,11,22,.78);
+}
+
+/* Full-width leaderboard rows (buys + teams) */
+.la-wtable{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.la-wrow{display:grid;align-items:center;gap:10px;padding:7px 10px;border-radius:11px;border:1px solid var(--wrap-line);background:var(--wrap-chip);min-width:0}
+.la-wrow--buy{grid-template-columns:24px 38px minmax(0,1fr) minmax(70px,1.4fr) auto}
+.la-wrow--team{grid-template-columns:24px 30px minmax(0,1fr) minmax(70px,2fr) auto}
+.la-wrank{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font:900 11px Inter;color:#08111f}
+.la-wav{position:relative;width:38px;height:38px;border-radius:11px;overflow:hidden;display:grid;place-items:center;font:900 12px Inter;color:var(--wrap-ink);background:rgba(125,147,165,.22)}
+.la-wav img{width:100%;height:100%;object-fit:cover}
+.la-wav .la-wteamlogo{position:absolute;right:-1px;bottom:-1px;width:16px;height:16px;border-radius:50%;border:2px solid var(--wrap-card);background:#fff;object-fit:contain}
+.la-wlogo{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;overflow:hidden;background:rgba(125,147,165,.16)}
+.la-wlogo img{width:100%;height:100%;object-fit:contain}
+.la-wlogo span{font:900 9px Inter;color:var(--wrap-ink)}
+.la-wname{min-width:0;display:flex;flex-direction:column;gap:1px}
+.la-wname b{font:900 clamp(12px,1vw,15px) Inter;color:var(--wrap-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.la-wname span{font:800 9px Inter;letter-spacing:.8px;text-transform:uppercase;color:var(--wrap-ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.la-wbar{height:6px;border-radius:99px;background:var(--wrap-line);overflow:hidden;min-width:40px}
+.la-wbar i{display:block;height:100%;border-radius:99px;transition:width .5s ease}
+.la-wval{font:900 italic clamp(15px,1.3vw,20px)/1 'Barlow Condensed';color:var(--wrap-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:640px){
+  .la-wrow--buy{grid-template-columns:22px 34px minmax(0,1fr) auto}
+  .la-wrow--team{grid-template-columns:22px 26px minmax(0,1fr) auto}
+  .la-wbar{display:none}
+}
