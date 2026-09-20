@@ -57,14 +57,17 @@ export default function LeaderboardPage() {
   const mostSixes = useMemo(() => [...(lb?.batting ?? [])].sort((a, b) => b.sixes - a.sixes)[0], [lb]);
   const hidden = flags != null && !flags.leaderboard_public;
 
-  return <div className={dark ? 'app dark' : 'app'}>
+  return <div className={dark ? 'app dark lb-page' : 'app lb-page'}>
     <SiteHeader dark={dark} onToggleTheme={toggleTheme} relative />
-    <main className="shell" style={{ padding: '20px 0 64px' }}>
-      <header className="mb-6">
-        <p className="text-[10px] font-black uppercase tracking-[2px] text-cyan-500">DPL 2026 / STATS</p>
-        <h1 className="mt-2 font-display text-4xl font-black italic uppercase tracking-tight sm:text-5xl">Leaderboard</h1>
-        <p className="mt-2 max-w-xl text-sm text-muted-foreground">Auto-built from every ball scored in the tournament — batting, bowling and team totals.</p>
-      </header>
+    <section className="lb-hero">
+      <div className="lb-hero-bg" />
+      <div className="lb-hero-content">
+        <p className="lb-hero-eyebrow">DPL 2026 / STATS</p>
+        <h1>Leaderboard</h1>
+        <p className="lb-hero-sub">Auto-built from every ball scored in the tournament — batting, bowling, fielding, awards and team totals.</p>
+      </div>
+    </section>
+    <main className="shell lb-main">
 
       {loading && <div className="grid place-items-center py-24 text-muted-foreground"><Loader2 className="animate-spin" /></div>}
 
@@ -95,19 +98,25 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="mb-5 flex flex-wrap items-center gap-3">
-          <div className="inline-flex gap-1 rounded-xl border bg-card p-1 shadow-sm">
-            {(['batting', 'bowling', 'fielding', 'pom', 'teams'] as Tab[]).map((t) => (
-              <button key={t} type="button" onClick={() => setTab(t)} className={`rounded-lg px-4 py-2 text-xs font-black uppercase tracking-wider transition-colors ${tab === t ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow' : 'text-muted-foreground hover:text-foreground'}`}>{t}</button>
-            ))}
+          <div className="admin-tabs-wrap max-w-full overflow-x-auto">
+            <div className="inline-flex w-max gap-1 rounded-xl border bg-card p-1 shadow-sm">
+              {(['batting', 'bowling', 'fielding', 'pom', 'teams'] as Tab[]).map((t) => (
+                <button key={t} type="button" onClick={() => setTab(t)} className={`rounded-lg px-4 py-2 text-xs font-black uppercase tracking-wider transition-colors ${tab === t ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow' : 'text-muted-foreground hover:text-foreground'}`}>{t}</button>
+              ))}
+            </div>
           </div>
           {tab === 'batting' && (
-            <div className="inline-flex gap-1 rounded-xl border bg-card p-1 text-[10px] shadow-sm">
-              {(['runs', 'sixes', 'fours', 'sr'] as BatSort[]).map((s) => <button key={s} type="button" onClick={() => setBatSort(s)} className={`rounded-lg px-3 py-1.5 font-black uppercase ${batSort === s ? 'bg-muted text-foreground' : 'text-muted-foreground'}`}>{s === 'sr' ? 'Strike rate' : s}</button>)}
+            <div className="admin-tabs-wrap max-w-full overflow-x-auto">
+              <div className="inline-flex w-max gap-1 rounded-xl border bg-card p-1 text-[10px] shadow-sm">
+                {(['runs', 'sixes', 'fours', 'sr'] as BatSort[]).map((s) => <button key={s} type="button" onClick={() => setBatSort(s)} className={`rounded-lg px-3 py-1.5 font-black uppercase ${batSort === s ? 'bg-muted text-foreground' : 'text-muted-foreground'}`}>{s === 'sr' ? 'Strike rate' : s}</button>)}
+              </div>
             </div>
           )}
           {tab === 'bowling' && (
-            <div className="inline-flex gap-1 rounded-xl border bg-card p-1 text-[10px] shadow-sm">
-              {(['wickets', 'economy', 'dots'] as BowlSort[]).map((s) => <button key={s} type="button" onClick={() => setBowlSort(s)} className={`rounded-lg px-3 py-1.5 font-black uppercase ${bowlSort === s ? 'bg-muted text-foreground' : 'text-muted-foreground'}`}>{s}</button>)}
+            <div className="admin-tabs-wrap max-w-full overflow-x-auto">
+              <div className="inline-flex w-max gap-1 rounded-xl border bg-card p-1 text-[10px] shadow-sm">
+                {(['wickets', 'economy', 'dots'] as BowlSort[]).map((s) => <button key={s} type="button" onClick={() => setBowlSort(s)} className={`rounded-lg px-3 py-1.5 font-black uppercase ${bowlSort === s ? 'bg-muted text-foreground' : 'text-muted-foreground'}`}>{s}</button>)}
+              </div>
             </div>
           )}
         </div>

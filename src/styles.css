@@ -2711,3 +2711,15 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 .pwa-install-close:hover{color:#fff}
 .pwa-install-close svg{width:15px;height:15px}
 @media(max-width:480px){.pwa-install{gap:10px;padding:10px 12px}.pwa-install-btn{padding:8px 12px}}
+
+/* ---- leaderboard hero ---- */
+.lb-page{background:var(--bg);min-height:100vh;overflow-x:hidden}
+.lb-hero{position:relative;overflow:hidden;background:#040a14;color:#fff;min-height:360px;display:flex;align-items:flex-end;margin-top:-72px}
+.lb-hero-bg{position:absolute;inset:0;background:var(--bg-leaderboard,url('/leaderboard.png')) center 32%/cover no-repeat;filter:saturate(1.05) contrast(1.02)}
+.lb-hero-bg:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,10,20,.94) 0%,rgba(4,10,20,.72) 42%,rgba(4,10,20,.32) 70%,rgba(4,10,20,.72) 100%),linear-gradient(0deg,rgba(4,10,20,.96) 2%,rgba(4,10,20,.2) 60%,transparent 100%)}
+.lb-hero-content{position:relative;z-index:2;width:min(1240px,calc(100% - 48px));margin:0 auto;padding:120px 0 42px}
+.lb-hero-eyebrow{font:900 11px Inter;letter-spacing:2.5px;color:#55e9ef;text-transform:uppercase;margin:0}
+.lb-hero h1{font:900 italic clamp(44px,7.2vw,88px)/.85 'Barlow Condensed';letter-spacing:-1.5px;text-transform:uppercase;margin:14px 0 0;text-shadow:0 10px 44px rgba(0,0,0,.55)}
+.lb-hero-sub{color:#b8c8d5;font-size:14px;line-height:1.6;max-width:540px;margin:14px 0 0}
+.lb-main{padding:26px 0 64px}
+@media(max-width:640px){.lb-hero{min-height:280px}.lb-hero-content{padding:100px 0 32px}}
