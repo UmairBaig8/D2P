@@ -133,6 +133,10 @@ export default function AdminPage() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  useEffect(() => {
+    document.querySelector('[data-slot="tabs-trigger"][data-state="active"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [tab]);
+
   const moveTab = (from: number, to: number) => {
     if (from === to) return;
     setTabOrder((order) => {
@@ -233,7 +237,8 @@ export default function AdminPage() {
       <main className="admin-main shell">
         <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)}>
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <TabsList>
+            <div className="admin-tabs-wrap w-full max-w-full overflow-x-auto sm:w-auto">
+            <TabsList className="w-max">
               {tabOrder.map((tab, index) => (
                 <TabsTrigger
                   key={tab}
@@ -248,7 +253,7 @@ export default function AdminPage() {
                   <span
                     draggable
                     title="Drag to reorder"
-                    className="cursor-grab opacity-50 hover:opacity-100 active:cursor-grabbing"
+                    className="hidden cursor-grab opacity-50 hover:opacity-100 active:cursor-grabbing sm:inline-flex"
                     onDragStart={() => { setDragIndex(index); }}
                     onDragEnd={() => setDragIndex(null)}
                   >
@@ -268,6 +273,7 @@ export default function AdminPage() {
                 </TabsTrigger>
               ))}
             </TabsList>
+            </div>
             <CompletionChip
               onUnassigned={() => { setTab('players'); setPlayersPreset({ unassigned: true }); }}
               onNoPhoto={() => { setTab('players'); setPlayersPreset({ photo: true }); }}

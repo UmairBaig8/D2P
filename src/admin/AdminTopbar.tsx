@@ -1,4 +1,4 @@
-import { LogOut, ExternalLink, Gavel } from 'lucide-react';
+import { LogOut, ExternalLink, Gavel, LayoutDashboard } from 'lucide-react';
 import { withBase } from '@/lib/base';
 import { Button } from '@/components/ui/button';
 
@@ -12,15 +12,15 @@ export default function AdminTopbar({ dark, onToggleTheme, onLogout, showLogout 
             DPL <span className="text-primary">ADMIN</span>
           </span>
         </a>
-        <div className="flex items-center gap-2">
-          <a href={withBase('/admin/auction')}>
-            <Button variant="outline" size="sm" className={auctionPage ? 'border-primary/60 text-primary' : ''}><Gavel /> AUCTION</Button>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <a href={withBase('/admin/auction')} aria-label="Auction control room">
+            <Button variant="outline" size="sm" className={auctionPage ? 'border-primary/60 text-primary' : ''}><Gavel /><span className="hidden sm:inline">AUCTION</span></Button>
           </a>
-          <a href={withBase('/admin')}>
-            <Button variant="ghost" size="sm"><span className="text-xs font-black">CONSOLE</span></Button>
+          <a href={withBase('/admin')} aria-label="Admin console">
+            <Button variant="ghost" size="sm"><LayoutDashboard className="sm:hidden" /><span className="hidden text-xs font-black sm:inline">CONSOLE</span></Button>
           </a>
-          <a href={withBase('/')}>
-            <Button variant="ghost" size="sm"><ExternalLink /> VIEW SITE</Button>
+          <a href={withBase('/')} aria-label="View site">
+            <Button variant="ghost" size="sm"><ExternalLink /><span className="hidden sm:inline">VIEW SITE</span></Button>
           </a>
           <div className="flex items-center gap-0.5 rounded-lg border border-border bg-background p-0.5">
             <button
@@ -41,7 +41,7 @@ export default function AdminTopbar({ dark, onToggleTheme, onLogout, showLogout 
             </button>
           </div>
           {showLogout && (
-            <Button variant="outline" size="sm" onClick={onLogout}><LogOut /> SIGN OUT</Button>
+            <Button variant="outline" size="sm" onClick={onLogout} aria-label="Sign out"><LogOut /><span className="hidden sm:inline">SIGN OUT</span></Button>
           )}
         </div>
       </div>

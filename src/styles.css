@@ -2690,3 +2690,24 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
   .fx-cta{padding:24px}
   .fx-cta h2{font-size:26px}
 }
+
+/* ---- admin mobile ---- */
+.admin-tabs-wrap{scrollbar-width:none;-ms-overflow-style:none}
+.admin-tabs-wrap::-webkit-scrollbar{display:none}
+@media(max-width:640px){
+  .admin-main{padding:18px 0 64px}
+  .admin-page .shell{width:min(100% - 24px,1240px)}
+}
+
+/* ---- PWA install prompt ---- */
+.pwa-install{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:12px;width:min(420px,calc(100% - 24px));padding:12px 14px;border-radius:16px;background:#0b1420;color:#eef5fb;border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 44px rgba(0,0,0,.4)}
+.pwa-install-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--blue));color:#04121f;flex:none}
+.pwa-install-icon svg{width:18px;height:18px}
+.pwa-install-text{min-width:0;flex:1;display:flex;flex-direction:column}
+.pwa-install-text b{font:900 12px Inter;letter-spacing:.3px}
+.pwa-install-text span{font:500 11px Inter;color:#a7b9c6;line-height:1.35}
+.pwa-install-btn{flex:none;font:900 10px Inter;letter-spacing:1px;padding:9px 14px;border-radius:9px;border:0;background:linear-gradient(90deg,var(--cyan),var(--blue));color:#04121f;cursor:pointer}
+.pwa-install-close{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:8px;border:0;background:transparent;color:#8ba0b0;cursor:pointer}
+.pwa-install-close:hover{color:#fff}
+.pwa-install-close svg{width:15px;height:15px}
+@media(max-width:480px){.pwa-install{gap:10px;padding:10px 12px}.pwa-install-btn{padding:8px 12px}}

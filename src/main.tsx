@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import App from './App';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
+import InstallPrompt from '@/components/InstallPrompt';
 import RegisterPage from '@/pages/RegisterPage';
 import ConfirmationPage from '@/pages/ConfirmationPage';
 import TeamsPage from '@/pages/TeamsPage';
@@ -26,6 +27,12 @@ function RouteFallback() {
 
 applyBaseStyles();
 
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => { /* offline/unsupported */ });
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL}>
@@ -46,6 +53,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/gallery" element={<ComingSoonPage eyebrow="DPL 2026 / GALLERY" title="GALLERY" copy="Match photos and moments from the season will be collected here." icon="📸" />} />
         </Routes>
       </Suspense>
+      <InstallPrompt />
     </BrowserRouter>
   </StrictMode>,
 );
