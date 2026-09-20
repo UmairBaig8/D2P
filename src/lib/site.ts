@@ -264,6 +264,12 @@ export async function adminSaveSettings(patch: {
   total_matches?: number;
   squad_size?: number;
   champion?: string | null;
+  points_win?: number;
+  points_tie?: number;
+  points_no_result?: number;
+  overs_per_innings?: number;
+  leaderboard_public?: boolean;
+  match_timing_public?: boolean;
 }): Promise<{ error?: string }> {
   if (!supabase) return { error: 'Supabase is not configured.' };
   const { error } = await supabase.from('settings').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', 1);

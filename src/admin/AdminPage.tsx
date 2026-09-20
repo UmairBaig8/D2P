@@ -26,6 +26,7 @@ import SessionsTab from '@/admin/SessionsTab';
 import ActivityTab from '@/admin/ActivityTab';
 import PlayersTab from '@/admin/PlayersTab';
 import WorkflowTab from '@/admin/WorkflowTab';
+import AdminFixturesTab from '@/admin/AdminFixturesTab';
 import {
   fetchAdminTeams,
   fetchAdminPlayers,
@@ -61,11 +62,17 @@ const settingsSchema = z.object({
   total_matches: z.string().regex(/^\d+$/, 'Must be a number.'),
   squad_size: z.string().regex(/^\d+$/, 'Must be a number.'),
   champion: z.string(),
+  points_win: z.string().regex(/^\d+$/, 'Must be a number.'),
+  points_tie: z.string().regex(/^\d+$/, 'Must be a number.'),
+  points_no_result: z.string().regex(/^\d+$/, 'Must be a number.'),
+  overs_per_innings: z.string().regex(/^\d+$/, 'Must be a number.'),
+  leaderboard_public: z.boolean(),
+  match_timing_public: z.boolean(),
 });
 
 type SettingsValues = z.infer<typeof settingsSchema>;
 
-const TAB_KEYS = ['dashboard', 'sessions', 'activity', 'settings', 'teams', 'players', 'workflow'] as const;
+const TAB_KEYS = ['dashboard', 'sessions', 'activity', 'settings', 'teams', 'players', 'fixtures', 'workflow'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 export default function AdminPage() {
@@ -284,6 +291,9 @@ export default function AdminPage() {
           <TabsContent value="players">
             <PlayersTab preset={playersPreset} onPresetApplied={() => setPlayersPreset(null)} />
           </TabsContent>
+          <TabsContent value="fixtures">
+            <AdminFixturesTab />
+          </TabsContent>
           <TabsContent value="workflow">
             <WorkflowTab />
           </TabsContent>
@@ -390,6 +400,12 @@ function SettingsTab() {
       total_matches: '24',
       squad_size: '15',
       champion: '',
+      points_win: '2',
+      points_tie: '1',
+      points_no_result: '1',
+      overs_per_innings: '5',
+      leaderboard_public: true,
+      match_timing_public: true,
     },
   });
 
@@ -406,6 +422,12 @@ function SettingsTab() {
         total_matches: String(data.total_matches ?? 24),
         squad_size: String(data.squad_size ?? 15),
         champion: data.champion ?? '',
+        points_win: String(data.points_win ?? 2),
+        points_tie: String(data.points_tie ?? 1),
+        points_no_result: String(data.points_no_result ?? 1),
+        overs_per_innings: String(data.overs_per_innings ?? 5),
+        leaderboard_public: data.leaderboard_public !== false,
+        match_timing_public: data.match_timing_public !== false,
       });
       setLoading(false);
     })();
@@ -421,6 +443,12 @@ function SettingsTab() {
       total_matches: Number(values.total_matches),
       squad_size: Number(values.squad_size),
       champion: values.champion || null,
+      points_win: Number(values.points_win),
+      points_tie: Number(values.points_tie),
+      points_no_result: Number(values.points_no_result),
+      overs_per_innings: Number(values.overs_per_innings),
+      leaderboard_public: values.leaderboard_public,
+      match_timing_public: values.match_timing_public,
     });
     if (error) toast.error(`Failed: ${error}`);
     else {
@@ -506,6 +534,52 @@ function SettingsTab() {
                   <FormMessage />
                 </FormItem>
               )} />
+            </div>
+          </div>
+          <div>
+            <h2 className="mb-4 font-display text-xl font-bold tracking-wide">LEAGUE POINTS</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <FormField control={form.control} name="points_win" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>POINTS · WIN</FormLabel>
+                  <FormControl><Input type="number" min={0} {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="points_tie" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>POINTS · TIE</FormLabel>
+                  <FormControl><Input type="number" min={0} {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="points_no_result" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>POINTS · NO RESULT</FormLabel>
+                  <FormControl><Input type="number" min={0} {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="overs_per_innings" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>OVERS PER INNINGS</FormLabel>
+                  <FormControl><Input type="number" min={1} {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
+          </div>
+          <div>
+            <h2 className="mb-4 font-display text-xl font-bold tracking-wide">VISIBILITY</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input type="checkbox" className="size-4 rounded border-input accent-[var(--primary)]" checked={form.watch('leaderboard_public')} onChange={(e) => form.setValue('leaderboard_public', e.target.checked)} />
+                SHOW LEADERBOARD (public /leaderboard)
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input type="checkbox" className="size-4 rounded border-input accent-[var(--primary)]" checked={form.watch('match_timing_public')} onChange={(e) => form.setValue('match_timing_public', e.target.checked)} />
+                SHOW MATCH TIMING (minutes vs allotted slot)
+              </label>
             </div>
           </div>
           <Button type="submit" disabled={form.formState.isSubmitting}>
