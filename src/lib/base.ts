@@ -16,4 +16,5 @@ export function applyBaseStyles() {
   root.setProperty('--bg-register', `url(${b}/registration.png)`);
   root.setProperty('--bg-teams', `url(${b}/teams.png)`);
   root.setProperty('--bg-auction', `url(${b}/auction.png)`);
+  root.setProperty('--bg-fixtures', `url(${b}/fixtures.png)`);
 }
