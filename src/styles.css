@@ -2742,3 +2742,8 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
   .topbar .brand{margin-right:auto}
   .nav-toggle{padding:8px;border-radius:10px}
 }
+
+/* mobile nav dropdown opens from the left, under the hamburger */
+@media(max-width:1050px){
+  .nav{left:16px;right:auto}
+}
