@@ -202,3 +202,7 @@
 - [Root cause] The host 301-redirects `/fixtures` -> `/fixtures/` (then 404 -> SPA shell), so on refresh the URL has a trailing slash and `NavLink` with `end` no longer matched -> no active tab. Reproduced in dev at `/D2P/fixtures/`.
 - [Fix] `SiteHeader` computes active from `useLocation().pathname` with trailing slashes stripped (`pathname.replace(/\/+$/,'')||'/'`), exact for `end` links and prefix otherwise, instead of relying on NavLink's isActive.
 - [Host note] Ideally configure the host to serve `index.html` (200) for all routes and drop the trailing-slash 301; the app fix makes the highlight robust regardless.
+
+## Deep-link refresh fixes (2026-09-21)
+- [Host reality] Deploy is GitHub Pages via `.github/workflows/deploy.yml` (upload-pages-artifact + deploy-pages) with custom domain dpl2026.umairbaig.in. GitHub Pages has NO rewrites — deep links serve `404.html` (SPA shell) with a 404 status, and it 301s `/x` -> `/x/`. Can't be changed from the repo.
+- [Mitigations] Added `public/.nojekyll` (disables Jekyll/pretty-URL processing). `main.tsx` strips a trailing slash on load via `history.replaceState` (skips the base root). `SiteHeader` computes active from `useLocation` with trailing slashes stripped. Netlify config already exists (`netlify.toml` VITE_BASE=/ + `public/_redirects` `/* /index.html 200`) if a 200-fallback host is preferred.

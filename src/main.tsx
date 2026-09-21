@@ -28,6 +28,14 @@ function RouteFallback() {
 
 applyBaseStyles();
 
+// Hosts (e.g. GitHub Pages) 301 `/x` -> `/x/`; keep the address bar clean and
+// the router consistent by stripping the trailing slash on load.
+const base = import.meta.env.BASE_URL;
+const initialPath = window.location.pathname;
+if (initialPath !== base && initialPath !== '/' && initialPath.endsWith('/')) {
+  window.history.replaceState(null, '', `${initialPath.replace(/\/+$/, '')}${window.location.search}${window.location.hash}`);
+}
+
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => { /* offline/unsupported */ });
