@@ -19,6 +19,7 @@
     { "src": "./logo-180.png", "sizes": "180x180", "type": "image/png" }
   ],
   "shortcuts": [
+    { "name": "Scorer", "short_name": "Scorer", "url": "./score" },
     { "name": "Fixtures", "short_name": "Fixtures", "url": "./fixtures" },
     { "name": "Leaderboard", "short_name": "Stats", "url": "./leaderboard" },
     { "name": "Live Auction", "short_name": "Auction", "url": "./auction" }

@@ -189,3 +189,8 @@
 - [Feature] When a hold flag is on, `/fixtures` and `/leaderboard` render a full-screen `HoldScreen` (their background image + "ON HOLD." + rotating funny quote every 5.5s) instead of content — nothing removed, just gated. ADMINS BYPASS the hold (isCurrentUserAdmin) so they can still see/edit the real pages.
 - [Admin] Settings → VISIBILITY: "HOLD FIXTURES" and "HOLD LEADERBOARD" toggles (site.ts adminSaveSettings extended; PublicFlags has fixtures_hold/leaderboard_hold). Flags currently set TRUE in the DB.
 - [Files] `src/components/HoldScreen.tsx`, `.hold*` styles, quotes inline in each page.
+
+## /score scorer mode (mobile-only) + offline queue (2026-09-21)
+- [Route] `/score` (`src/pages/ScorePage.tsx`) — mobile-only (blocks desktop with a "open on your phone" screen), match picker (Live/Upcoming/Completed), full-screen scorer (`AdminScorerDialog fullscreen`), Wake Lock (screen stays on), online/offline indicator + queued badge + manual SYNC. Added to PWA shortcuts.
+- [Offline] `src/lib/scoreQueue.ts` — queues ball/batter actions in `localStorage['d2p.score.queue']` when `navigator.onLine===false` or the RPC fails with a network error; `flushQueue()` replays in order on reconnect. `AdminScorerDialog` uses `submitBall`/`submitBatter`, shows an optimistic local tally + "OFFLINE · N" badge + pending chips, and auto-flushes on the `online` event. Undo/close/reopen still require connectivity.
+- [Gotcha] Offline the striker/bowler display can't rotate (server derives it); the queued balls are attributed correctly on flush. Only ONE device should score a given innings.

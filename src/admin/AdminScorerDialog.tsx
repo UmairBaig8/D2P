@@ -8,10 +8,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchTeamRoster, type TeamRosterPlayer } from '@/lib/site';
 import {
-  adminBallAdd, adminBallUndo, adminInningsClose, adminInningsReopen, adminInningsSetBatter, adminInningsSetStrike, adminInningsSetup,
+  adminBallUndo, adminInningsClose, adminInningsReopen, adminInningsSetStrike, adminInningsSetup,
   fetchInnings, fetchMatchScorecard, oversText,
   type Fixture, type MatchInnings, type MatchScorecard, type WicketType,
 } from '@/lib/fixtures';
+import { submitBall, submitBatter, flushQueue, queueLength } from '@/lib/scoreQueue';
 
 const RUNS = [0, 1, 2, 3, 4, 6];
 const WICKETS: Array<{ type: WicketType; label: string; runOut?: boolean }> = [
@@ -24,7 +25,10 @@ const WICKETS: Array<{ type: WicketType; label: string; runOut?: boolean }> = [
   { type: 'other', label: 'Other' },
 ];
 
-export default function AdminScorerDialog({ fixture, onClose, onSaved }: { fixture: Fixture; onClose: () => void; onSaved: () => void }) {
+export default function AdminScorerDialog({ fixture, onClose, onSaved, fullscreen }: { fixture: Fixture; onClose: () => void; onSaved: () => void; fullscreen?: boolean }) {
+  const [offline, setOffline] = useState<{ runs: number; wickets: number; legal: number } | null>(null);
+  const [pendingChips, setPendingChips] = useState<string[]>([]);
+  const [queued, setQueued] = useState(() => queueLength());
   const [innings, setInnings] = useState<MatchInnings[] | null>(null);
   const [card, setCard] = useState<MatchScorecard | null>(null);
   const [rosters, setRosters] = useState<Record<string, TeamRosterPlayer[]>>({});
@@ -95,27 +99,62 @@ export default function AdminScorerDialog({ fixture, onClose, onSaved }: { fixtu
   const ball = async (batRuns: number, extra: string | null, isWicket: boolean, wicketType: WicketType | null, fielderId: string | null = null, fieldingNote: string | null = null) => {
     if (!current) return;
     setBusy(true);
-    const { error } = await adminBallAdd(fixture.match_number, current.innings, { batRuns, extra, isWicket, wicketType, bowlerId: selectedBowler || null, fielderId, fieldingNote });
+    const { queued: wasQueued, error } = await submitBall(fixture.match_number, current.innings, { batRuns, extra, isWicket, wicketType, bowlerId: selectedBowler || null, fielderId, fieldingNote });
     setBusy(false);
     if (error) return toast.error(error);
     setWicketOpen(false);
     setPendingWicket(null);
     setFielder('');
     setFieldNote('');
+    if (wasQueued) {
+      const legal = extra === null || extra === 'bye' || extra === 'leg_bye';
+      setOffline((o) => {
+        const base = o ?? { runs: 0, wickets: 0, legal: 0 };
+        return {
+          runs: base.runs + batRuns + (extra === 'wide' || extra === 'no_ball' ? 1 : 0),
+          wickets: base.wickets + (isWicket ? 1 : 0),
+          legal: base.legal + (legal ? 1 : 0),
+        };
+      });
+      setPendingChips((c) => [...c, extra === 'wide' ? 'wd' : extra === 'no_ball' ? 'nb' : extra === 'bye' ? 'b' : isWicket ? 'W' : String(batRuns)]);
+      toast.message('Saved offline', { description: 'Will sync automatically when you are back online.' });
+    }
+    setQueued(queueLength());
     if (isWicket) setNeedBatter(true);
-    await reload();
+    if (!wasQueued) await reload();
   };
 
   const pickBatter = async () => {
     if (!current || !newBatter) return;
     setBusy(true);
-    const { error } = await adminInningsSetBatter(fixture.match_number, current.innings, newBatter, current.non_striker_id);
+    const { queued: wasQueued, error } = await submitBatter(fixture.match_number, current.innings, newBatter, current.non_striker_id);
     setBusy(false);
     if (error) return toast.error(error);
     setNeedBatter(false);
     setNewBatter('');
-    await reload();
+    setQueued(queueLength());
+    if (!wasQueued) await reload();
   };
+
+  useEffect(() => {
+    const sync = async () => {
+      const { flushed, error } = await flushQueue();
+      setQueued(queueLength());
+      if (flushed > 0) {
+        toast.success(`Synced ${flushed} offline ball${flushed === 1 ? '' : 's'}.`);
+        setOffline(null);
+        setPendingChips([]);
+        await reload();
+        onSaved();
+      } else if (error) {
+        toast.error(`Sync failed: ${error}`);
+      }
+    };
+    const onOnline = () => { void sync(); };
+    window.addEventListener('online', onOnline);
+    if (typeof navigator !== 'undefined' && navigator.onLine) void sync();
+    return () => window.removeEventListener('online', onOnline);
+  }, [reload, onSaved]);
 
   const undo = async () => {
     if (!current) return;
@@ -150,10 +189,16 @@ export default function AdminScorerDialog({ fixture, onClose, onSaved }: { fixtu
   const battingRoster = current ? rosters[current.batting_code] ?? [] : [];
   const bowlingRoster = current ? rosters[current.bowling_code] ?? [] : [];
   const recent = (card?.commentary ?? []).filter((b) => b.innings === current?.innings).slice(-14).reverse();
+  const dispRuns = (summary?.runs ?? 0) + (offline?.runs ?? 0);
+  const dispWickets = (summary?.wickets ?? 0) + (offline?.wickets ?? 0);
+  const dispBalls = (summary?.balls ?? 0) + (offline?.legal ?? 0);
+  const dispOvers = Math.floor(dispBalls / 6) + (dispBalls % 6) / 10;
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className={fullscreen
+        ? 'h-[100dvh] max-h-[100dvh] w-full max-w-none overflow-y-auto rounded-none sm:h-auto sm:max-h-[92vh] sm:max-w-lg sm:rounded-lg'
+        : 'max-h-[92vh] overflow-y-auto sm:max-w-lg'}>
         <DialogHeader>
           <DialogTitle>SCORER · {fixture.home_code} vs {fixture.away_code}</DialogTitle>
           <DialogDescription>Tap to score. Totals write back to the fixture when an innings is closed.</DialogDescription>
@@ -209,11 +254,14 @@ export default function AdminScorerDialog({ fixture, onClose, onSaved }: { fixtu
                 <div className="rounded-xl border-2 border-primary/40 bg-card p-3">
                   <div className="mb-1 flex items-center justify-between">
                     <span className="text-xs font-bold uppercase text-muted-foreground">Batting · {current.batting_code}</span>
-                    {current.free_hit && <Badge variant="default" className="bg-amber-500/20 text-amber-600"><Zap /> FREE HIT</Badge>}
+                    <span className="flex items-center gap-1.5">
+                      {current.free_hit && <Badge variant="default" className="bg-amber-500/20 text-amber-600"><Zap /> FREE HIT</Badge>}
+                      {queued > 0 && <Badge variant="default" className="bg-slate-500/20 text-slate-600">OFFLINE · {queued}</Badge>}
+                    </span>
                   </div>
                   <div className="font-display text-4xl font-black leading-none">
-                    {summary?.runs ?? 0}<span className="text-2xl text-muted-foreground">/{summary?.wickets ?? 0}</span>
-                    <span className="ml-2 text-base font-normal text-muted-foreground">({oversText(summary?.overs ?? 0)} ov)</span>
+                    {dispRuns}<span className="text-2xl text-muted-foreground">/{dispWickets}</span>
+                    <span className="ml-2 text-base font-normal text-muted-foreground">({oversText(dispOvers)} ov)</span>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                     <div className="rounded-lg bg-primary/10 px-2 py-1"><span className="text-muted-foreground">Striker</span><div className="font-semibold">{nameOf(current.striker_id)} *</div></div>
@@ -273,8 +321,11 @@ export default function AdminScorerDialog({ fixture, onClose, onSaved }: { fixtu
                   <Button variant="outline" className="h-11" disabled={busy || !bowlerReady || needBatter || custom === ''} onClick={() => { ball(Number(custom), customType === 'runs' ? null : customType, false, null); setCustom(''); }}>ADD</Button>
                 </div>
 
-                {recent.length > 0 && (
+                {(pendingChips.length > 0 || recent.length > 0) && (
                   <div className="flex flex-wrap gap-1">
+                    {pendingChips.map((c, i) => (
+                      <span key={`p${i}`} className={`rounded-md border px-1.5 py-0.5 text-[11px] font-bold opacity-60 ${c === 'W' ? 'border-destructive/40 text-destructive' : c === 'wd' || c === 'nb' || c === 'b' ? 'border-amber-500/40 text-amber-600' : ''}`}>{c}</span>
+                    ))}
                     {recent.map((b) => (
                       <span key={b.seq} className={`rounded-md border px-1.5 py-0.5 text-[11px] font-bold ${b.is_wicket ? 'border-destructive/40 text-destructive' : b.extra ? 'border-amber-500/40 text-amber-600' : ''}`}>
                         {b.extra === 'wide' ? 'wd' : b.extra === 'no_ball' ? 'nb' : b.extra === 'bye' ? 'b' : b.is_wicket ? 'W' : b.runs}

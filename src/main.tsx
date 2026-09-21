@@ -12,6 +12,7 @@ import PlayersPage from '@/pages/PlayersPage';
 import TeamPage from '@/pages/TeamPage';
 import FixturesPage from '@/pages/FixturesPage';
 import LeaderboardPage from '@/pages/LeaderboardPage';
+import ScorePage from '@/pages/ScorePage';
 import ComingSoonPage from '@/pages/ComingSoonPage';
 import './index.css';
 import './styles.css';
@@ -48,6 +49,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/auction" element={<AuctionControlRoom />} />
           <Route path="/fixtures" element={<FixturesPage />} />
+          <Route path="/score" element={<ScorePage />} />
           <Route path="/auction" element={<AuctionPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/gallery" element={<ComingSoonPage eyebrow="DPL 2026 / GALLERY" title="GALLERY" copy="Match photos and moments from the season will be collected here." icon="📸" />} />
