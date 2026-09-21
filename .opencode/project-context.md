@@ -197,3 +197,8 @@
 
 ## Mobile header: hamburger to the left (2026-09-21)
 - Moved `.nav-toggle` out of `.topbar-right` to be the first child of the header; on ≤1050px the topbar is `justify-content:flex-start` with `.brand{margin-right:auto}` so the ☰ sits far-left, brand next to it, theme switch far-right (was center-ish).
+
+## Nav active state survives trailing slash (2026-09-21)
+- [Root cause] The host 301-redirects `/fixtures` -> `/fixtures/` (then 404 -> SPA shell), so on refresh the URL has a trailing slash and `NavLink` with `end` no longer matched -> no active tab. Reproduced in dev at `/D2P/fixtures/`.
+- [Fix] `SiteHeader` computes active from `useLocation().pathname` with trailing slashes stripped (`pathname.replace(/\/+$/,'')||'/'`), exact for `end` links and prefix otherwise, instead of relying on NavLink's isActive.
+- [Host note] Ideally configure the host to serve `index.html` (200) for all routes and drop the trailing-slash 301; the app fix makes the highlight robust regardless.
