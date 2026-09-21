@@ -2723,3 +2723,15 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 .lb-hero-sub{color:#b8c8d5;font-size:14px;line-height:1.6;max-width:540px;margin:14px 0 0}
 .lb-main{padding:26px 0 64px}
 @media(max-width:640px){.lb-hero{min-height:280px}.lb-hero-content{padding:100px 0 32px}}
+
+/* ---- on hold ---- */
+.hold{position:relative;overflow:hidden;min-height:calc(100vh - 72px);display:flex;align-items:center;justify-content:center;background:#040a14;color:#fff;margin-top:-72px;padding:120px 24px 60px;text-align:center}
+.hold-bg{position:absolute;inset:0;background-position:center 35%;background-size:cover;filter:saturate(1.05) contrast(1.02);opacity:.5}
+.hold-bg:after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 38%,rgba(4,10,20,.35),rgba(4,10,20,.92) 70%),linear-gradient(0deg,rgba(4,10,20,.98),transparent 55%)}
+.hold-inner{position:relative;z-index:2;max-width:700px}
+.hold-eyebrow{font:900 11px Inter;letter-spacing:3px;color:#55e9ef;text-transform:uppercase;margin:0 0 14px}
+.hold h1{font:900 italic clamp(56px,13vw,140px)/.82 'Barlow Condensed';letter-spacing:-2px;text-transform:uppercase;margin:0;text-shadow:0 12px 50px rgba(0,0,0,.55)}
+.hold h1 span{background:linear-gradient(90deg,var(--orange),var(--pink),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hold-quote{margin:26px auto 0;max-width:580px;font:700 italic clamp(18px,2.6vw,27px)/1.35 'Barlow Condensed';color:#eaf0f7;animation:hold-fade .6s var(--ease-out)}
+.hold-note{margin:18px auto 0;max-width:460px;color:#8ba0b0;font:500 13px Inter;line-height:1.6}
+@keyframes hold-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}

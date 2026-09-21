@@ -301,13 +301,21 @@ export async function fetchFixturePom(): Promise<Record<number, string>> {
   return Object.fromEntries((data as { match_number: number; name: string }[]).map((r) => [r.match_number, r.name]));
 }
 
-export type PublicFlags = { leaderboard_public: boolean; match_timing_public: boolean };
+export type PublicFlags = { leaderboard_public: boolean; match_timing_public: boolean; fixtures_hold: boolean; leaderboard_hold: boolean };
+
+const DEFAULT_FLAGS: PublicFlags = { leaderboard_public: true, match_timing_public: true, fixtures_hold: false, leaderboard_hold: false };
 
 export async function fetchPublicFlags(): Promise<PublicFlags> {
-  if (!supabase) return { leaderboard_public: true, match_timing_public: true };
-  const { data, error } = await supabase.from('settings').select('leaderboard_public, match_timing_public').eq('id', 1).single();
-  if (error || !data) return { leaderboard_public: true, match_timing_public: true };
-  return { leaderboard_public: data.leaderboard_public !== false, match_timing_public: data.match_timing_public !== false };
+  if (!supabase) return DEFAULT_FLAGS;
+  const { data, error } = await supabase.from('settings')
+    .select('leaderboard_public, match_timing_public, fixtures_hold, leaderboard_hold').eq('id', 1).single();
+  if (error || !data) return DEFAULT_FLAGS;
+  return {
+    leaderboard_public: data.leaderboard_public !== false,
+    match_timing_public: data.match_timing_public !== false,
+    fixtures_hold: data.fixtures_hold === true,
+    leaderboard_hold: data.leaderboard_hold === true,
+  };
 }
 
 export async function adminBallUndo(matchNumber: number, innings: number): Promise<{ error?: string }> {

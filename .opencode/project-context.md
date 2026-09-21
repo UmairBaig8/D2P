@@ -183,3 +183,9 @@
 
 ## Leaderboard hero image restored (2026-09-21)
 - Brought back the `leaderboard.png` backdrop as a cinematic hero band on `/leaderboard` (title + subtitle over the image, gradient overlay), plus a `--bg-leaderboard` runtime var in `applyBaseStyles()` so it resolves at any base. Leaderboard tab + sort strips are now horizontally scrollable on mobile (`.admin-tabs-wrap`).
+
+## Tournament "on hold" pages (2026-09-21)
+- [DB migration 13 `20260920000013_hold_flags.sql`] `settings.fixtures_hold`, `settings.leaderboard_hold` (both default false).
+- [Feature] When a hold flag is on, `/fixtures` and `/leaderboard` render a full-screen `HoldScreen` (their background image + "ON HOLD." + rotating funny quote every 5.5s) instead of content — nothing removed, just gated. ADMINS BYPASS the hold (isCurrentUserAdmin) so they can still see/edit the real pages.
+- [Admin] Settings → VISIBILITY: "HOLD FIXTURES" and "HOLD LEADERBOARD" toggles (site.ts adminSaveSettings extended; PublicFlags has fixtures_hold/leaderboard_hold). Flags currently set TRUE in the DB.
+- [Files] `src/components/HoldScreen.tsx`, `.hold*` styles, quotes inline in each page.

@@ -2,13 +2,24 @@ import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Download, Loader2, MapPin, Trophy, Zap } from 'lucide-react';
 import SiteHeader from '@/components/SiteHeader';
 import PublicScorecardDialog from '@/components/PublicScorecardDialog';
+import HoldScreen from '@/components/HoldScreen';
 import { resolveAsset } from '@/lib/base';
 import {
-  computeStandings, fetchFixtureConfig, fetchFixtures, fetchFixturePom, fetchFixturesTiming, fetchLiveDetail, formatFixtureDate, formatFixtureTime, oversText,
-  DEFAULT_FIXTURE_CONFIG, type Fixture, type FixtureConfig, type LiveDetail, type MatchTiming, type Standing,
+  computeStandings, fetchFixtureConfig, fetchFixtures, fetchFixturePom, fetchFixturesTiming, fetchLiveDetail, fetchPublicFlags, formatFixtureDate, formatFixtureTime, oversText,
+  DEFAULT_FIXTURE_CONFIG, type Fixture, type FixtureConfig, type LiveDetail, type MatchTiming, type PublicFlags, type Standing,
 } from '@/lib/fixtures';
-import { fetchTeamsList, type TeamRow } from '@/lib/site';
+import { fetchTeamsList, isCurrentUserAdmin, type TeamRow } from '@/lib/site';
 import { useTheme } from '@/lib/useTheme';
+
+const FIXTURE_QUOTES = [
+  'The fixture list is in the DRS review. Third umpire is fetching chai.',
+  'Not rain. Not bad light. Just… dates doing a slow over-rate.',
+  'Our schedule went for a strategic timeout. Back after the drinks break.',
+  'The calendar pulled a hamstring. Physio says two–three days.',
+  'Dates under negotiation — the trophy is already practising its speech.',
+  'Fixtures are on a water break. Hydration is important, people.',
+  'We’ve appealed for a postponement. Decision pending with the match referee.',
+];
 
 type Groups = Record<'A' | 'B', string[]>;
 type Slot = { code: string; name: string; captain: string; team?: TeamRow };
@@ -61,6 +72,8 @@ export default function FixturesPage() {
   const [scorecardFor, setScorecardFor] = useState<Fixture | null>(null);
   const [timing, setTiming] = useState<Record<number, MatchTiming>>({});
   const [pom, setPom] = useState<Record<number, string>>({});
+  const [flags, setFlags] = useState<PublicFlags | null>(null);
+  const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -70,6 +83,8 @@ export default function FixturesPage() {
     });
     fetchFixturesTiming().then((rows) => { if (active) setTiming(Object.fromEntries(rows.map((r) => [r.match_number, r]))); });
     fetchFixturePom().then((m) => { if (active) setPom(m); });
+    fetchPublicFlags().then((f) => { if (active) setFlags(f); });
+    isCurrentUserAdmin().then((a) => { if (active) setAdmin(a); });
     return () => { active = false; };
   }, []);
 
@@ -109,6 +124,13 @@ export default function FixturesPage() {
     visibleLeague.forEach((f) => map.set(f.match_date, [...(map.get(f.match_date) ?? []), f]));
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [visibleLeague]);
+
+  if (flags?.fixtures_hold && !admin) {
+    return <div className={dark ? 'app dark fx-page' : 'app fx-page'}>
+      <SiteHeader dark={dark} onToggleTheme={toggleTheme} relative />
+      <HoldScreen eyebrow="DPL 2026 / FIXTURES" bgVar="--bg-fixtures" quotes={FIXTURE_QUOTES} />
+    </div>;
+  }
 
   return <div className={dark ? 'app dark fx-page' : 'app fx-page'}>
     <SiteHeader dark={dark} onToggleTheme={toggleTheme} relative />

@@ -68,6 +68,8 @@ const settingsSchema = z.object({
   overs_per_innings: z.string().regex(/^\d+$/, 'Must be a number.'),
   leaderboard_public: z.boolean(),
   match_timing_public: z.boolean(),
+  fixtures_hold: z.boolean(),
+  leaderboard_hold: z.boolean(),
 });
 
 type SettingsValues = z.infer<typeof settingsSchema>;
@@ -412,6 +414,8 @@ function SettingsTab() {
       overs_per_innings: '5',
       leaderboard_public: true,
       match_timing_public: true,
+      fixtures_hold: false,
+      leaderboard_hold: false,
     },
   });
 
@@ -434,6 +438,8 @@ function SettingsTab() {
         overs_per_innings: String(data.overs_per_innings ?? 5),
         leaderboard_public: data.leaderboard_public !== false,
         match_timing_public: data.match_timing_public !== false,
+        fixtures_hold: data.fixtures_hold === true,
+        leaderboard_hold: data.leaderboard_hold === true,
       });
       setLoading(false);
     })();
@@ -455,6 +461,8 @@ function SettingsTab() {
       overs_per_innings: Number(values.overs_per_innings),
       leaderboard_public: values.leaderboard_public,
       match_timing_public: values.match_timing_public,
+      fixtures_hold: values.fixtures_hold,
+      leaderboard_hold: values.leaderboard_hold,
     });
     if (error) toast.error(`Failed: ${error}`);
     else {
@@ -585,6 +593,14 @@ function SettingsTab() {
               <label className="flex items-center gap-2 text-sm font-medium">
                 <input type="checkbox" className="size-4 rounded border-input accent-[var(--primary)]" checked={form.watch('match_timing_public')} onChange={(e) => form.setValue('match_timing_public', e.target.checked)} />
                 SHOW MATCH TIMING (minutes vs allotted slot)
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input type="checkbox" className="size-4 rounded border-input accent-[var(--primary)]" checked={form.watch('fixtures_hold')} onChange={(e) => form.setValue('fixtures_hold', e.target.checked)} />
+                HOLD FIXTURES (show the fun “on hold” page)
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input type="checkbox" className="size-4 rounded border-input accent-[var(--primary)]" checked={form.watch('leaderboard_hold')} onChange={(e) => form.setValue('leaderboard_hold', e.target.checked)} />
+                HOLD LEADERBOARD (show the fun “on hold” page)
               </label>
             </div>
           </div>

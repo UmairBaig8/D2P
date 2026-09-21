@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Trophy } from 'lucide-react';
 import SiteHeader from '@/components/SiteHeader';
+import HoldScreen from '@/components/HoldScreen';
 import { useTheme } from '@/lib/useTheme';
 import { fetchLeaderboard, fetchPublicFlags, type Leaderboard, type PublicFlags } from '@/lib/fixtures';
+import { isCurrentUserAdmin } from '@/lib/site';
+
+const LEADERBOARD_QUOTES = [
+  'Everyone’s average is currently 0.00. Including the spreadsheet.',
+  'The leaderboard is still doing its warm-up stretches.',
+  'No runs on the board yet — the scoreboard is on a strategic timeout.',
+  'Stats loading slower than a Sunday afternoon innings.',
+  'Top scorer: TBD. Top sledge: already decided.',
+  'The only thing leading right now is the chai counter.',
+];
 
 type Tab = 'batting' | 'bowling' | 'fielding' | 'pom' | 'teams';
 type BatSort = 'runs' | 'sixes' | 'fours' | 'sr';
@@ -12,6 +23,7 @@ export default function LeaderboardPage() {
   const { dark, toggleTheme } = useTheme();
   const [lb, setLb] = useState<Leaderboard | null>(null);
   const [flags, setFlags] = useState<PublicFlags | null>(null);
+  const [admin, setAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('batting');
   const [batSort, setBatSort] = useState<BatSort>('runs');
@@ -23,6 +35,7 @@ export default function LeaderboardPage() {
       if (!alive) return;
       setLb(l); setFlags(f); setLoading(false);
     });
+    isCurrentUserAdmin().then((a) => { if (alive) setAdmin(a); });
     return () => { alive = false; };
   }, []);
 
@@ -56,6 +69,13 @@ export default function LeaderboardPage() {
   const mostDots = useMemo(() => [...(lb?.bowling ?? [])].sort((a, b) => b.dots - a.dots)[0], [lb]);
   const mostSixes = useMemo(() => [...(lb?.batting ?? [])].sort((a, b) => b.sixes - a.sixes)[0], [lb]);
   const hidden = flags != null && !flags.leaderboard_public;
+
+  if (flags?.leaderboard_hold && !admin) {
+    return <div className={dark ? 'app dark lb-page' : 'app lb-page'}>
+      <SiteHeader dark={dark} onToggleTheme={toggleTheme} relative />
+      <HoldScreen eyebrow="DPL 2026 / LEADERBOARD" bgVar="--bg-leaderboard" quotes={LEADERBOARD_QUOTES} />
+    </div>;
+  }
 
   return <div className={dark ? 'app dark lb-page' : 'app lb-page'}>
     <SiteHeader dark={dark} onToggleTheme={toggleTheme} relative />
