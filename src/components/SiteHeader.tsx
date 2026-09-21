@@ -23,6 +23,7 @@ export default function SiteHeader({ dark, onToggleTheme, relative }: SiteHeader
 
   return (
     <header className={relative ? 'topbar register-topbar' : 'topbar'}>
+      <button className="nav-toggle" type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? '✕' : '☰'}</button>
       <a className="brand" href={withBase('/')} aria-label="D2P home"><img className="brand-mark" src={withBase('/logo-96.png')} alt="D2P logo" width="48" height="48" /><span className="brand-text">DPL <b>2026</b><small>DIGITATE PREMIER LEAGUE</small></span></a>
 
       <nav className={open ? 'nav open' : 'nav'}>
@@ -30,7 +31,6 @@ export default function SiteHeader({ dark, onToggleTheme, relative }: SiteHeader
       </nav>
 
       <div className="topbar-right">
-        <button className="nav-toggle" type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? '✕' : '☰'}</button>
         {/* <a className="topbar-join" href={withBase("/register")}>JOIN</a> */}
         <div className="theme-switch"><button className={!dark ? 'active' : ''} type="button" aria-label="Light theme" onClick={() => onToggleTheme(false)}>☼</button><button className={dark ? 'active' : ''} type="button" aria-label="Dark theme" onClick={() => onToggleTheme(true)}>☾</button></div>
       </div>

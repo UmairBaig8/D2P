@@ -2735,3 +2735,10 @@ footer{background:rgba(245,248,251,.6);backdrop-filter:blur(16px) saturate(170%)
 .hold-quote{margin:26px auto 0;max-width:580px;font:700 italic clamp(18px,2.6vw,27px)/1.35 'Barlow Condensed';color:#eaf0f7;animation:hold-fade .6s var(--ease-out)}
 .hold-note{margin:18px auto 0;max-width:460px;color:#8ba0b0;font:500 13px Inter;line-height:1.6}
 @keyframes hold-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* mobile header: hamburger on the far left, brand next, actions right */
+@media(max-width:1050px){
+  .topbar{justify-content:flex-start;gap:10px}
+  .topbar .brand{margin-right:auto}
+  .nav-toggle{padding:8px;border-radius:10px}
+}

@@ -194,3 +194,6 @@
 - [Route] `/score` (`src/pages/ScorePage.tsx`) — mobile-only (blocks desktop with a "open on your phone" screen), match picker (Live/Upcoming/Completed), full-screen scorer (`AdminScorerDialog fullscreen`), Wake Lock (screen stays on), online/offline indicator + queued badge + manual SYNC. Added to PWA shortcuts.
 - [Offline] `src/lib/scoreQueue.ts` — queues ball/batter actions in `localStorage['d2p.score.queue']` when `navigator.onLine===false` or the RPC fails with a network error; `flushQueue()` replays in order on reconnect. `AdminScorerDialog` uses `submitBall`/`submitBatter`, shows an optimistic local tally + "OFFLINE · N" badge + pending chips, and auto-flushes on the `online` event. Undo/close/reopen still require connectivity.
 - [Gotcha] Offline the striker/bowler display can't rotate (server derives it); the queued balls are attributed correctly on flush. Only ONE device should score a given innings.
+
+## Mobile header: hamburger to the left (2026-09-21)
+- Moved `.nav-toggle` out of `.topbar-right` to be the first child of the header; on ≤1050px the topbar is `justify-content:flex-start` with `.brand{margin-right:auto}` so the ☰ sits far-left, brand next to it, theme switch far-right (was center-ish).
